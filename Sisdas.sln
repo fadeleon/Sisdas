@@ -1,0 +1,16 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sisdas", "Sisdas\Sisdas.csproj", "{36C0C65B-8646-4A60-88FC-38BA58EF3694}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{36C0C65B-8646-4A60-88FC-38BA58EF3694}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36C0C65B-8646-4A60-88FC-38BA58EF3694}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36C0C65B-8646-4A60-88FC-38BA58EF3694}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36C0C65B-8646-4A60-88FC-38BA58EF3694}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
