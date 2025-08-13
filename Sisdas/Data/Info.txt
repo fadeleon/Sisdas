@@ -1,0 +1,7 @@
+scaffold database licencias
+dotnet ef dbcontext scaffold "Name=ConnectionStrings:DefaultConnection" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models/Entities/Permisos --context-dir Models/Entities/Permisos --context DBContextLicencias -f --no-pluralize -t TbActividades -t TbActividadesDocumentos -t TbLicenciasEstados -t TbNormativa -t TbNormativaOrden -t TbEmpresasLicencias -t TbLicencias -t TbRegiones
+
+#Identity Update Model
+dotnet ef migrations add IdentityUser --output-dir DataMigrations --context ApplicationDbContext
+
+dotnet ef database update --context ApplicationDbContext

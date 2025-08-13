@@ -25,8 +25,18 @@ builder.Services.AddAuthentication(options =>
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
                        throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+var ConnectionStrings = new MySqlConnector.MySqlConnectionStringBuilder()
+{
+    Server = "10.130.254.136",
+    Database = "db_sisdas",
+    UserID = "u_sisdas",
+    Password = "9.UWtCR#860*",
+}.ToString();
+
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
+    options.UseMySql(ConnectionStrings, ServerVersion.AutoDetect(ConnectionStrings)));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
