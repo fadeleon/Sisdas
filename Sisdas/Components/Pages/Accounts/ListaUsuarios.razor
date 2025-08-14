@@ -1,0 +1,211 @@
+@page "/admin/listausuarios"
+@layout DashBoardLayout
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Sisdas.Data
+
+@inject UserManager<ApplicationUser> _userManager
+@inject RoleManager<IdentityRole> _roleManager
+
+@* @attribute [Authorize (Roles = "super-user, certificados")] *@
+@attribute [StreamRendering]
+
+<div class="card">
+    <div class="card-header">
+        <div class="row row-cols-lg-auto g-3 align-items-center">
+            <div class="col">
+                <h3 class="mb-0 fw-bold">Usuarios</h3>
+            </div>
+            <div class="col ms-auto">
+                <NavLink class="btn btn-sm btn-primary" href="/admin/createuser" Match="NavLinkMatch.All">
+                    <i class="fa-solid fa-user-plus"></i> Crear Usuario
+                </NavLink>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        @* @if (Users.Count == 0)
+        { *@
+        @* <div class="d-flex justify-content-center">
+        <strong role="status">Cargando...</strong>
+        <Spinner Color="SpinnerColor.Danger" />
+        </div> *@
+        @* }
+        else
+        { *@
+        <div class="table-responsive">
+            <Grid @ref="GridUsers" TItem="UserModel" Class="table table-sm table-bordered table-striped"
+                DataProvider="GridDataProvider" AllowPaging="true" PageSize="10"
+                PaginationItemsTextFormat="{0} - {1} de {2} registros" Responsive="true"
+                HeaderRowCssClass="bg-primary text-white border-bottom-0">
+                <GridColumn TItem="UserModel" HeaderText="Nombres y Apellidos" HeaderTextAlignment="Alignment.Center"
+                            TextAlignment="Alignment.Start">
+                    @context.NombreCompleto
+                </GridColumn>
+                <GridColumn TItem="UserModel" HeaderText="# Documento Identidad" HeaderTextAlignment="Alignment.Center"
+                            TextAlignment="Alignment.Center">
+                    @context.NumeroDocumento
+                </GridColumn>
+                <GridColumn TItem="UserModel" HeaderText="Correo" HeaderTextAlignment="Alignment.Center"
+                            TextAlignment="Alignment.Center">
+                    @context.Correo
+                </GridColumn>
+                <GridColumn TItem="UserModel" HeaderText="Roles" HeaderTextAlignment="Alignment.Center"
+                            TextAlignment="Alignment.Center">
+                    @context.Roles
+                </GridColumn>
+                <GridColumn TItem="UserModel" HeaderText="Secciones" HeaderTextAlignment="Alignment.Center"
+                            TextAlignment="Alignment.Center">
+                    @context.Secciones
+                </GridColumn>
+                <GridColumn TItem="UserModel" HeaderText="Ultima Actividad" HeaderTextAlignment="Alignment.Center"
+                            TextAlignment="Alignment.Center">
+                    @context.LastLogin
+                </GridColumn>
+                <GridColumn TItem="UserModel" HeaderText="¿Usuario Activo?" HeaderTextAlignment="Alignment.Center"
+                    TextAlignment="Alignment.Center">
+                    @context.IsActivo
+                </GridColumn>
+                <GridTemplates>
+                    <GridEmptyDataTemplate TItem="UserModel">
+                        No data
+                    </GridEmptyDataTemplate>
+                </GridTemplates>
+            </Grid>
+        </div>
+        @* } *@
+    </div>
+</div>
+
+@code
+{
+    [CascadingParameter] Task<AuthenticationState> authenticationStateTask { get; set; } = default!;
+
+    #region VARIABLES
+    private Grid<UserModel> GridUsers = default!;
+
+    private List<UserModel> Users = new();
+    #endregion
+
+    #region MODELOS
+    private sealed class UserModel
+    {
+        public string Correo { get; set; } = "";
+        public string NombreCompleto { get; set; } = "";
+        public string NumeroDocumento { get; set; } = "";
+        public string IsActivo { get; set; }
+        public DateTime? LastLogin { get; set; }
+        
+        // ROLES
+        public string Roles { get; set; } = "";
+
+        // SECCIONES
+        public string Secciones { get; set; } = "";
+    }
+    #endregion
+
+    #region EVENTOS
+    private async Task<List<UserModel>> GetUsers()
+    {
+        var authState = await authenticationStateTask;
+        var ActualUser = authState.User;
+        string ActualUserName = "";
+        if (ActualUser.Identity is not null && ActualUser.Identity.IsAuthenticated)
+        {
+            ActualUserName = ActualUser.Identity.Name ?? "";
+        }
+
+        var users = _userManager.Users;
+        foreach (var user in users)
+        {
+            if (user.Email != ActualUserName)
+            {
+                UserModel userList = new UserModel()
+                    {
+                        Correo = user.Email ?? "",
+                        NombreCompleto = string.Concat(user.Nombres, " ", user.Apellidos),
+                        NumeroDocumento = user.NumeroDocumentoIdentidad ?? "",
+                        LastLogin = user.LastLoginDate,
+                        IsActivo = user.IsActivo.ToString() ?? ""
+                    };
+                var rolename = await _userManager.GetRolesAsync(user);
+                userList.Roles = GetRoleDescription(rolename.ToList());
+                userList.Secciones = GetDepartamentos(rolename.ToList());
+                Users.Add(userList);
+            }
+        }
+        return await Task.FromResult(Users);
+    }
+
+    private string GetRoleDescription(List<string> RolesList)
+    {
+        string roles = "";
+        foreach (var item in RolesList)
+        {
+            if (item == "super-user")
+            {
+                roles += "Super Usuario, ";
+            }
+
+            if (item == "administrador")
+            {
+                roles += "Administrador, ";
+            }
+
+            if (item == "captador")
+            {
+                roles += "Captador, ";
+            }
+        }
+
+        roles = roles.Trim();
+        roles = roles.Length > 0 ? roles.Substring(0, roles.Length - 1) : "";
+
+        return roles;
+    }
+
+    private string GetDepartamentos(List<string> Departamentos)
+    {
+        string secciones = "";
+        foreach (var item in Departamentos)
+        {
+            if (item == "certificados")
+            {
+                secciones = "Certificados";
+            }
+
+            if (item == "registros")
+            {
+                secciones = "Registros";
+            }
+
+            if (item == "licencias")
+            {
+                secciones = "Licencias";
+            }
+
+            if (item == "criterios")
+            {
+                secciones = "Criterios Técnicos";
+            }
+        }
+        return secciones;
+    }
+
+    private async Task<GridDataProviderResult<UserModel>> GridDataProvider(GridDataProviderRequest<UserModel>
+    request)
+    {
+        Users = new List<UserModel>();
+        int TotalRows = 0;
+        Users = await GetUsers();
+        Users = Users.OrderBy(x => x.NombreCompleto).ToList();
+        TotalRows = Users.Count();
+        Users = Users.Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize).ToList();
+        return await Task.FromResult(new GridDataProviderResult<UserModel>
+            {
+                Data = Users,
+                TotalCount = TotalRows
+            });
+    }
+    #endregion
+}

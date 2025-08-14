@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Sisdas.Components;
 using Sisdas.Components.Account;
 using Sisdas.Data;
+using Sisdas.Repositorios.Interfaces;
+using Sisdas.Repositorios.Servicios;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,8 +36,11 @@ var ConnectionStrings = new MySqlConnector.MySqlConnectionStringBuilder()
     Password = "9.UWtCR#860*",
 }.ToString();
 
-builder.Services.AddDbContextFactory<ApplicationDbContext>(options =>
-    options.UseMySql(ConnectionStrings, ServerVersion.AutoDetect(ConnectionStrings)));
+builder.Services.AddDbContextFactory<ApplicationDbContext>(options => options.UseMySql(ConnectionStrings, ServerVersion.AutoDetect(ConnectionStrings)));
+
+builder.Services.AddTransient<ICommon, CommonService>();
+builder.Services.AddScoped<IUserData, UserDataService>();
+builder.Services.AddTransient<ILocalStorage, LocalStorageService>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 

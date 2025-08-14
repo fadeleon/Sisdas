@@ -1,0 +1,461 @@
+@page "/admin/crearusuario"
+@layout DashBoardLayout
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Sisdas.Data
+@using Sisdas.Models.Entities.Sisdas
+@using Sisdas.Repositorios.Interfaces
+@using Sisdas.Models.Otros
+@using Sisdas.Repositorios.Servicios
+@* @attribute [Authorize (Roles = "super-user, administrador")] *@
+@attribute [StreamRendering]
+
+@inject NavigationManager NavigationManager
+@inject UserManager<ApplicationUser> _UserManager
+@inject RoleManager<IdentityRole> _roleManager
+@inject IUserData _UserService
+@inject ICommon CommonService   
+
+<div class="container-fluid p-3">
+    <EditForm Model="UserInfo" method="post" OnValidSubmit="RegisterNewUser" FormName="register">
+        <h3>Registrar Usuario</h3>
+        <div class="row">
+            <div class="col-lg-6 col-sm-12 col-md-6">
+                <h4 class="mb-5">Datos Generales</h4>
+                <DataAnnotationsValidator />
+                <ValidationSummary class="alert alert-danger" role="alert" />
+                <div class="mb-3">
+                    <label class="fw-bold">¿Es usuario del minsa?</label>
+                    <div>
+                        <InputRadioGroup @bind-Value="IsFromDominio">
+                            <div class="form-check form-check-inline">
+                                <InputRadio class="form-check-input" Value="true" id="dominioSi"/>
+                                <label class="form-check-label" for="dominioSi">Sí</label>
+                            </div>         
+                            <div class="form-check form-check-inline">
+                                <InputRadio class="form-check-input" Value="false" id="dominioNo"/>
+                                <label class="form-check-label" for="dominioNo">No</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold mb-1" for="correo">Correo</label>
+                    <div class="d-flex flex-wrap gap-2 align-items-start">
+                        <div class="flex-grow-1">
+                            <InputText id="correo" @bind-Value="UserInfo.Correo" class="form-control"
+                                       placeholder="nombre@ejemplo.com" aria-required="true" disabled="@(UserInfo.IsFromDominio == null)"/>
+                            <ValidationMessage For="() => UserInfo.Correo" class="text-danger" />
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-outline-primary" @onclick="ValidateEmail" disabled="@( UserInfo.IsFromDominio != true )" >
+                                <i class="fa-solid fa-magnifying-glass me-1"></i>Validar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Nombres <span class="text-muted ms-1">(Primer y Segundo Nombre)</span> </label>
+                    <InputText @bind-Value="UserInfo.Nombres" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <ValidationMessage For="() => UserInfo.Nombres" class="text-danger"/>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Apellidos <span class="text-muted ms-1">(Primer y Segundo Apellido)</span> </label>
+                    <InputText @bind-Value="UserInfo.Apellidos" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <ValidationMessage For="() => UserInfo.Apellidos" class="text-danger"/>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Número de Documento de Identidad <span class="text-muted ms-1">(Cédula o Pasaporte)</span> </label>
+                    <InputText @bind-Value="UserInfo.NumeroDocumentoIdent" class="form-control text-uppercase w-auto" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <ValidationMessage For="() => UserInfo.NumeroDocumentoIdent" class="text-danger"/>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Género</label>
+                    <div>
+                        <InputRadioGroup @bind-Value="UserInfo.Genero">
+                            <div class="form-check form-check-inline">
+                                <InputRadio class="form-check-input" Value="@("M")" id="masculino" />
+                                <label class="form-check-label" for="masculino">Masculino</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <InputRadio class="form-check-input" Value="@("F")" id="femenino" />
+                                <label class="form-check-label" for="femenino">Femenino</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Télefono Movil </label>
+                    <InputText @bind-Value="UserInfo.TelefonoMovil" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <ValidationMessage For="() => UserInfo.TelefonoMovil" class="text-danger"/>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Télefono Laboral </label>
+                    <InputText @bind-Value="UserInfo.TelefonoLaboral" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <ValidationMessage For="() => UserInfo.TelefonoLaboral" class="text-danger"/>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Region de Salud</label>
+                    <InputSelect @bind-Value="UserInfo.RegionSalud" class="form-select">
+                        <option value="">-- SELECIONE --</option>
+                        @foreach (var item in regionesSalud)
+                        {
+                            <option value="@item.IdRegion">@item?.NombreRegion?.ToUpper()</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="() => UserInfo.RegionSalud" class="text-danger"/>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold">Instalación de Salud</label>
+                    <AutoComplete @bind-Value="filtroInstalaciones"
+                                  TItem="UserModel"
+                                  DataProvider="AutoCompleteDataProvider"
+                                  OnChanged="(UserModel Instalaciones) => OnAutoCompleteChanged(Instalaciones)"
+                                  PropertyName="Numero"
+                                  class="form-control"
+                                  Placeholder="Busque por instalación" />
+                    <ValidationMessage For="() => UserInfo.InstalacionSalud" class="text-danger"/>
+                </div>
+
+                @* <div class="mb-3"> *@
+                @*     <label class="fw-bold">Contraseña</label> *@
+                @*     <InputText type="password" @bind-Value="UserInfo.Password" class="form-control" *@
+                @*         aria-required="true" /> *@
+                @*     <ValidationMessage For="() => UserInfo.Password" class="text-danger" /> *@
+                @* </div> *@
+                @* <div class="mb-3"> *@
+                @*     <label class="fw-bold">Confirmar Contraseña</label> *@
+                @*     <InputText type="password" @bind-Value="UserInfo.ConfirmPassword" class="form-control" *@
+                @*         aria-required="true" /> *@
+                @*     <ValidationMessage For="() => UserInfo.ConfirmPassword" class="text-danger" /> *@
+                @* </div> *@
+                <button type="submit" class="w-100 btn btn-sm btn-primary" disabled="@( UserInfo.IsFromDominio == null )" >Crear Usuario</button>
+            </div>
+            <div class="col-lg-6 col-sm-12 col-md-6">
+                <h4>Roles</h4>
+                <div class="form-check mb-1">
+                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.SuperUser" />
+                    <label class="form-check-label">
+                        Super Usuario
+                    </label>
+                </div>
+                <div class="form-check mb-1">
+                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Administrador" />
+                    <label class="form-check-label">
+                        Administrador
+                    </label>
+                </div>
+                <div class="form-check mb-1">
+                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Captador" />
+                    <label class="form-check-label">
+                        Por Especificar
+                    </label>
+                </div>
+                <h4 class="my-2">Roles</h4>
+                <div class="form-check mb-1">
+                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Licencias" />
+                    <label class="form-check-label">
+                        Por Especificar
+                    </label>
+                </div>
+                <div class="form-check mb-1">
+                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Criterios" />
+                    <label class="form-check-label">
+                        Por Especificar
+                    </label>
+                </div>
+                <div class="form-check mb-1">
+                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Certificados" />
+                    <label class="form-check-label">
+                        Por Especificar
+                    </label>
+                </div>
+                <div class="form-check mb-1">
+                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Registros" />
+                    <label class="form-check-label">
+                        Por Especificar
+                    </label>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code
+{
+    #region VARIABLES
+    [Inject] protected ToastService _ToastService { get; set; } = default!;
+    private UserModel UserInfo { get; set; } = new();
+    private List<string> ErrorsFormMessages { get; set; } = new();
+    private bool UserFound { get; set; } = false;
+    private List<CatRegionSalud> regionesSalud = new();
+    private string filtroInstalaciones;
+    #endregion
+
+    #region MODELOS
+    private sealed class UserModel : IValidatableObject
+    {
+        [Required]
+        [EmailAddress]
+        [Display(Name = "Correo")]
+        public string Correo { get; set; } = "";
+
+        // [Required]
+        // [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        // [DataType(DataType.Password)]
+        // [Display(Name = "Password")]
+        // public string Password { get; set; } = "";
+        //
+        // [DataType(DataType.Password)]
+        // [Display(Name = "Confirm password")]
+        // [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
+        // public string ConfirmPassword { get; set; } = "";
+
+        [Display(Name = "Nombres")]
+        public string Nombres { get; set; } = "";
+
+        [Display(Name = "Apellidos")]
+        public string Apellidos { get; set; } = "";
+
+        [Display(Name = "Numero de Documento de Identidad")]
+        public string NumeroDocumentoIdent { get; set; } = "";
+
+        [Display(Name = "Género")]
+        public string Genero { get; set; } = "";
+
+        [Display(Name = "Télefono Movil")]
+        public string TelefonoMovil { get; set; } = "";
+
+        [Display(Name = "Télefono Laboral")]
+        public string TelefonoLaboral { get; set; } = "";
+
+        [Display(Name = "Instalación de Salud")]
+        public int InstalacionSalud { get; set; }
+
+        [Display(Name = "Región de Salud")]
+        public int RegionSalud { get; set; }
+
+        [Display(Name = "Tipo usuario")]
+        public bool? IsFromDominio { get; set; } = null;
+
+        // ROLES
+        public bool SuperUser { get; set; } = false;
+        public bool Administrador { get; set; } = false;
+        public bool Captador { get; set; } = false;
+
+        // SECCIONES
+        public bool Certificados { get; set; } = false;
+        public bool Criterios { get; set; } = false;
+        public bool Licencias { get; set; } = false;
+        public bool Registros { get; set; } = false;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (IsFromDominio != true)
+            {
+                if (string.IsNullOrWhiteSpace(FirstName))
+                    yield return new ValidationResult("El nombre es requerido.", new[] { nameof(FirstName) });
+                if (string.IsNullOrWhiteSpace(LastName))
+                    yield return new ValidationResult("El apellido es requerido.", new[] { nameof(LastName) });
+            }
+
+            if (IsFromDominio is true or false)
+            {
+                if (string.IsNullOrWhiteSpace(Iniciales))
+                    yield return new ValidationResult("Las iniciales son requeridas.", new[] { nameof(Iniciales) });
+            }
+        }
+    }
+    #endregion
+
+    #region EVENTOS
+
+    protected override async Task OnInitializedAsync()
+    {
+        regionesSalud = await CommonService.GetRegiones();
+    }
+
+    private async Task RegisterNewUser()
+    {
+        try
+        {
+            if (!(UserInfo.SuperUser || UserInfo.Administrador || UserInfo.Captador
+                  || UserInfo.Criterios || UserInfo.Licencias || UserInfo.Certificados
+                  || UserInfo.Registros))
+            {
+                _ToastService.Notify(new(ToastType.Warning, "Validación", $"{DateTime.Now}",
+                    "Debe seleccionar al menos un rol antes de guardar."));
+                return;
+            }
+
+            ApplicationUser newUser = new ApplicationUser()
+                {
+                    UserName = UserInfo.Email,
+                    Email = UserInfo.Email,
+                    FirstName = UserInfo.FirstName,
+                    LastName = UserInfo.LastName,
+                    CreatedAt = DateTime.Now,
+                    EmailConfirmed = true,
+                    Iniciales = UserInfo.Iniciales,
+                    IsFromActiveDirectory = (UserInfo.IsFromDominio == true)
+                };
+
+            ResultModel Resultado;
+            Resultado = await _UserService.CreateUser(newUser);
+            if (Resultado.Resultado)
+            {
+                IdentityResult? roleResult;
+                if (UserInfo.SuperUser)
+                {
+                    roleResult = await _UserManager.AddToRoleAsync(newUser, "super-user");
+                }
+                else if (UserInfo.Administrador || UserInfo.Captador)
+                {
+                    if (UserInfo.Captador)
+                    {
+                        roleResult = await _UserManager.AddToRoleAsync(newUser, "captador");
+                    }
+                    else
+                    {
+                        roleResult = await _UserManager.AddToRoleAsync(newUser, "administrador");
+                    }
+
+                    if (roleResult.Succeeded)
+                    {
+                        if (UserInfo.Criterios)
+                        {
+                            await _UserManager.AddToRoleAsync(newUser, "criterios");
+                        }
+                        if (UserInfo.Licencias)
+                        {
+                            await _UserManager.AddToRoleAsync(newUser, "licencias");
+                        }
+                        if (UserInfo.Certificados)
+                        {
+                            await _UserManager.AddToRoleAsync(newUser, "certificados");
+                        }
+                        if (UserInfo.Registros)
+                        {
+                            await _UserManager.AddToRoleAsync(newUser, "registros");
+                        }
+
+                        NavigationManager.NavigateTo("/admin/listusers");
+                    }
+                }
+
+                _ToastService.Notify(new(ToastType.Success, "Validación", $"{DateTime.Now}", "Usuario creado exitosamente."));
+                NavigationManager.NavigateTo("/admin/listusers");
+            }
+            else
+            {
+                string errors = "";
+                foreach (var item in Resultado.Errores)
+                {
+                    errors += item + "\n";
+                }
+                _ToastService.Notify(new(ToastType.Danger, $"Error", $"{DateTime.Now}", $"Error: {errors}."));
+            }
+        }
+        catch (Exception ex)
+        {
+            _ToastService.Notify(new(ToastType.Danger, $"Error", $"{DateTime.Now}", $"Error: {ex.Message}."));
+        }
+    }
+
+    private async Task ValidateEmail()
+    {
+        ErrorsFormMessages.Clear();
+
+        var SearchUser = await _UserManager.FindByEmailAsync(UserInfo.Email);
+        if (SearchUser != null)
+        {
+            _ToastService.Notify(new(ToastType.Warning, "Validación", $"{DateTime.Now}", "El usuario ya está registrado en el sistema."));
+            return;
+        }
+
+        ResultGenericModel<ActiveDirectoryUserModel> ActiveDirectoryUserModelData =
+            await _UserService.FindUserByEmail(UserInfo.Email);
+
+        if (ActiveDirectoryUserModelData.Data != null)
+        {
+            UserFound = true;
+            UserInfo.LastName = ActiveDirectoryUserModelData.Data.lastName;
+            UserInfo.FirstName = ActiveDirectoryUserModelData.Data.firstName;
+            _ToastService.Notify(new(ToastType.Success, "Validación", $"{DateTime.Now}", "Usuario encontrado en AD"));
+        }
+        else
+        {
+            UserFound = false;
+            UserInfo.LastName = "";
+            UserInfo.FirstName = "";
+            _ToastService.Notify(new(ToastType.Danger, "Validación", $"{DateTime.Now}", "No se encuentro el usuario."));
+        }
+    }
+
+    private bool? IsFromDominio
+    {
+        get => UserInfo.IsFromDominio;
+        set
+        {
+            if (UserInfo.IsFromDominio == value) return;
+
+            UserInfo.IsFromDominio = value;
+
+            UserInfo.Email = "";
+            UserInfo.FirstName = "";
+            UserInfo.LastName = "";
+            UserInfo.Iniciales = "";
+
+            UserFound = false;
+
+            StateHasChanged();
+        }
+    }
+    
+    private async Task<AutoCompleteDataProviderResult<UserModel>> AutoCompleteDataProvider(
+        AutoCompleteDataProviderRequest<UserModel> request)
+    {
+
+        var filtro = (request.Filter?.Value?.ToString() ?? "").ToUpper();
+
+        var lista = await CommonService.GetInstalaciones(filtro);
+
+
+        var filtradas = lista.Select(x => new ListModel
+        {
+            Id = x.Id,
+            Name = x.Name.Trim()
+        });
+
+        return new AutoCompleteDataProviderResult<ListModel>
+        {
+            Data = filtradas,
+            TotalCount = filtradas.Count()
+        };
+    }
+    private void OnAutoCompleteChanged(LicencialbModel? Licencia)
+    {
+        if (Licencia is null)
+        {
+            certlibreventaModel.LicenciaId        = 0;
+            certlibreventaModel.NumeroLicencia    = "";
+            certlibreventaModel.NombreEmpresa    = "";
+            certlibreventaModel.EmpresaTipoEstablecimiento = "";
+            certlibreventaModel.EmpresaRuc = "";
+            certlibreventaModel.EmpresaRazonSocial = "";
+            certlibreventaModel.EmpresaDireccion = "";
+            return;
+        }
+
+        certlibreventaModel.LicenciaId        = Licencia.Id;
+        certlibreventaModel.NumeroLicencia    = Licencia.Numero;
+        certlibreventaModel.NombreEmpresa    = Licencia.empresaNombre;
+        certlibreventaModel.EmpresaTipoEstablecimiento = Licencia.empresaTipoEstablecimiento ?? "";
+        certlibreventaModel.EmpresaRuc = Licencia.empresaRuc ?? "";
+        certlibreventaModel.EmpresaRazonSocial = Licencia.empresaRazonSocial ?? "";
+        certlibreventaModel.EmpresaDireccion = Licencia.empresaDireccion ?? "";
+    }
+
+    #endregion
+}

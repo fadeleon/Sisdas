@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Sisdas")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+23f5298b4bbdf9d1292bea809dff979eddb59402")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5a50c4e5d73ff074f4b1943e68499bf83bfe6f8d")]
 [assembly: System.Reflection.AssemblyProductAttribute("Sisdas")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Sisdas")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

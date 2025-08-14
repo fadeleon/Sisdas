@@ -1,5 +1,5 @@
-scaffold database licencias
-dotnet ef dbcontext scaffold "Name=ConnectionStrings:DefaultConnection" Microsoft.EntityFrameworkCore.SqlServer --output-dir Models/Entities/Permisos --context-dir Models/Entities/Permisos --context DBContextLicencias -f --no-pluralize -t TbActividades -t TbActividadesDocumentos -t TbLicenciasEstados -t TbNormativa -t TbNormativaOrden -t TbEmpresasLicencias -t TbLicencias -t TbRegiones
+scaffold database sisdas
+dotnet ef dbcontext scaffold "Server=10.130.254.136;Database=db_sisdas;User ID=u_sisdas;Password=9.UWtCR#860*;" Pomelo.EntityFrameworkCore.MySql --output-dir Models/Entities/Sisdas --context-dir Models/Entities/Sisdas --context DBContextSisdas -f --no-pluralize -t cat_corregimiento -t cat_distrito -t cat_modulos -t cat_pais -t cat_provincia -t cat_region_salud -t cat_servicio -t cat_tipos_documentos -t cat_unidad_notificadora -t cat_unidad_notificadora2 -t tbl_casos -t tbl_casos_admisiones -t tbl_casos_admisiones_bitacora -t tbl_personas 
 
 #Identity Update Model
 dotnet ef migrations add IdentityUser --output-dir DataMigrations --context ApplicationDbContext

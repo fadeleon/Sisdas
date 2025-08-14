@@ -1,0 +1,90 @@
+@using Sisdas.Repositorios.Interfaces
+@inherits LayoutComponentBase
+@inject ILocalStorage _LocalStorageServices
+
+<div class="wrapper">
+    <aside id="sidebar" class="js-sidebar @(IsCollapsed ? "collapsed" : "")">
+        <!-- Content For Sidebar -->
+        <div class="h-100">
+            <div class="sidebar-logo">
+                <NavLink href="/dashboard" Match="NavLinkMatch.All">
+                    <img src="images/logo-minsa-clean.png" class="img-fluid" alt="Logo MINSA" style="height: 25px;">SISDAS
+                </NavLink>
+            </div>
+            <NavMenu />
+        </div>
+    </aside>
+    <div class="main">
+        <nav class="navbar navbar-expand px-3 border-bottom">
+            <button class="btn" id="sidebar-toggle" type="button" @onclick="ToggledClick">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse navbar py-0">
+                <ul class="navbar-nav">
+                    <li class="nav-item dropdown border rounded-pill btn btn-sm btn-light py-2 px-4">
+                        <a href="#" data-bs-toggle="dropdown" class="nav-icon pe-md-0">
+                            <AuthorizeView>
+                                <Authorized>
+                                    <i class="fa-solid fa-user me-1"></i>
+                                    @context.User.Identity?.Name
+                                    <i class="ms-1 fa-solid fa-caret-down"></i>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <i class="fa-solid fa-user me-1"></i>
+                                    <strong class="mx-2">Usuario</strong>
+                                    <i class="ms-1 fa-solid fa-caret-down"></i>
+                                </NotAuthorized>
+                            </AuthorizeView>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            @* <NavLink class="dropdown-item" href="/admin/changepass" Match="NavLinkMatch.All"> *@
+                            @*     <i class="fa-solid fa-key text-warning"></i> Cambiar Clave *@
+                            @* </NavLink> *@
+                            @* <hr class="dropdown-divider"> *@
+                            <form action="account/custom-logout" method="post">
+                                <AntiforgeryToken />
+                                <button type="submit" class="dropdown-item">
+                                    <i class="fa-solid fa-right-from-bracket text-danger"></i> Salir
+                                </button>
+                            </form>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <main class="content px-3 py-2">
+            @Body
+        </main>
+        <footer class="footer mt-auto py-3 bg-body-tertiary border-top">
+            <div class="container-fluid">
+                <div>
+                    <a href="www.minsa.gob.pa" target="_blank"><img src="images/logo-minsa-clean.png" class="img-fluid"
+                            alt="Logo MINSA" style="height: 20px;">Ministerio de Salud de Panamá</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+</div>
+
+<Toasts class="p-3" Placement="ToastsPlacement.TopRight" Delay="5000" AutoHide="true" />
+
+@code {
+
+    private bool IsCollapsed { get; set; } = false;
+    private string? currentUrl { get; set; } = "";
+
+    private async Task ToggledClick()
+    {
+        IsCollapsed = !IsCollapsed;
+        await _LocalStorageServices.AddItem("IsCollapsed", IsCollapsed ? "1" : "0");
+    }
+
+    protected async override Task OnInitializedAsync()
+    {
+        string result = await _LocalStorageServices.GetItem("IsCollapsed");
+        if (!String.IsNullOrEmpty(result))
+        {
+            IsCollapsed = result == "1" ? true : false;
+        }
+    }
+}

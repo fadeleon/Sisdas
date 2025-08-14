@@ -105,6 +105,10 @@
       "PackagePath": "staticwebassets/images/logo-minsa-clean.png"
     },
     {
+      "Id": "/Users/fadeleon/Documents/ProyectosGit/Sisdas/Sisdas/wwwroot/images/logo_gob_minsa_full.png",
+      "PackagePath": "staticwebassets/images/logo_gob_minsa_full.png"
+    },
+    {
       "Id": "obj/Debug/net8.0/staticwebassets/msbuild.Sisdas.Microsoft.AspNetCore.StaticWebAssets.props",
       "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
     },

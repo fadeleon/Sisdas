@@ -4,74 +4,85 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using Sisdas.Data
+@using Sisdas.Models.Otros
+@using Sisdas.Repositorios.Interfaces
 
+@inject UserManager<ApplicationUser> userManager
 @inject SignInManager<ApplicationUser> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
+@inject IUserData UserDataService
+@inject ICommon CommonService
 
-<PageTitle>Log in</PageTitle>
-
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-md-4">
-        <section>
-            <StatusMessage Message="@errorMessage"/>
+<div class="mx-auto d-flex justify-content-center align-items-center flex-column mt-lg-5 mt-md-5 mt-sm-2">
+    <div class="card shadow-lg" style="width: min(100%, 400px);">
+        <div class="card-body">
+            <div class="mt-4 mx-auto bg-primary-subtle d-flex justify-content-center align-items-center p-2 rounded-circle"
+                style="height: 100px; width: 100px;">
+                <i class="fa-solid fa-laptop fa-4x text-primary"></i>
+            </div>
+            <h2 class="text-center fw-bold my-4">Inicio de sesión</h2>
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator/>
-                <h2>Use a local account to log in.</h2>
-                <hr/>
-                <ValidationSummary class="text-danger" role="alert"/>
+                <DataAnnotationsValidator />
+                <ValidationSummary class="alert alert-danger my-3" role="alert" style="list-style-type: none;" />
+                @if (!String.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger my-3">
+                        @errorMessage
+                    </div>
+                }
                 <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com"/>
-                    <label for="email" class="form-label">Email</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger"/>
+                    <InputText @bind-Value="Input.Email" class="form-control form-control-sm" autocomplete="username"
+                        aria-required="true" placeholder="correo@correo.com" />
+                    <label for="email" class="form-label">Correo</label>
+                    <ValidationMessage For="() => Input.Email" class="text-danger" />
                 </div>
                 <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password"/>
-                    <label for="password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger"/>
+                    <InputText type="password" @bind-Value="Input.Password" class="form-control form-control-sm"
+                        autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <label for="password" class="form-label">Contraseña</label>
+                    <ValidationMessage For="() => Input.Password" class="text-danger" />
                 </div>
                 <div class="checkbox mb-3">
                     <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input"/>
-                        Remember me
+                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
+                        ¿Recordar Cuenta?
                     </label>
                 </div>
                 <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                    <button type="submit" class="w-100 btn btn-lg btn-primary">Acceder</button>
                 </div>
-                <div>
+                <div style="display: none;">
                     <p>
                         <a href="Account/ForgotPassword">Forgot your password?</a>
                     </p>
                     <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
+                        <a
+                            href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register
+                            as a new user</a>
                     </p>
                     <p>
                         <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
                     </p>
                 </div>
             </EditForm>
-        </section>
-    </div>
-    <div class="col-md-6 col-md-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr/>
-            <ExternalLoginPicker/>
-        </section>
+        </div>
     </div>
 </div>
 
 @code {
     private string? errorMessage;
+    private bool IsAccessing { get; set; } = false;
 
-    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
 
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
 
-    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,40 +95,55 @@
 
     public async Task LoginUser()
     {
+        IsAccessing = true;
+        errorMessage = "";
         // This doesn't count login failures towards account lockout
         // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+
+        var UserData = await userManager.FindByEmailAsync(Input.Email);
+        if (UserData == null)
+        {
+            errorMessage = "Error: El usuario no esta registrado en el sistema.";
+            IsAccessing = false;
+            return;
+        }
+
+        ResultModel resultado = await UserDataService.LoginAD(Input.Email, Input.Password);
+        if (!resultado.Resultado)
+        {
+            errorMessage = "Error: Hubo un problema con el active directory";
+            IsAccessing = false;
+            return;
+        }
+
+        string Password = await CommonService.GetFakePassword();
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Password, Input.RememberMe, lockoutOnFailure: true);
         if (result.Succeeded)
         {
+            UserData.LastLoginDate = DateTime.Now;
+            await userManager.UpdateAsync(UserData);
             Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
-        }
-        else if (result.RequiresTwoFactor)
-        {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-        }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
+            RedirectManager.RedirectTo("/dashboard");
         }
         else
         {
             errorMessage = "Error: Invalid login attempt.";
+            IsAccessing = false;
         }
     }
 
     private sealed class InputModel
     {
-        [Required] [EmailAddress] public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Debe ingresar el correo")]
+        [EmailAddress]
+        public string Email { get; set; } = "";
 
-        [Required]
+        [Required(ErrorMessage = "Debe ingresar la contraseña")]
         [DataType(DataType.Password)]
         public string Password { get; set; } = "";
 
-        [Display(Name = "Remember me?")] public bool RememberMe { get; set; }
+        [Display(Name = "¿Recordar Acceso?")]
+        public bool RememberMe { get; set; }
     }
-
 }
+
