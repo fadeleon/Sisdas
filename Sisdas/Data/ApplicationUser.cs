@@ -9,7 +9,7 @@ public class ApplicationUser : IdentityUser
     public string NumeroDocumentoIdentidad { get; set; } = "";
     public string Genero { get; set; } = "";
     public string TelefonoLaboral { get; set; } = "";
-    public int idInstalacionSalud { get; set; }
+    public int? idInstalacionSalud { get; set; }
     public int idRegionSalud { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.Now;
     public DateTime? LastLoginDate { get; set; }

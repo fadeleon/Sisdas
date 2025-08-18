@@ -2,6 +2,7 @@
 @layout DashBoardLayout
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @using Sisdas.Data
 
 @inject UserManager<ApplicationUser> _userManager
@@ -39,7 +40,7 @@
                 PaginationItemsTextFormat="{0} - {1} de {2} registros" Responsive="true"
                 HeaderRowCssClass="bg-primary text-white border-bottom-0">
                 <GridColumn TItem="UserModel" HeaderText="Nombres y Apellidos" HeaderTextAlignment="Alignment.Center"
-                            TextAlignment="Alignment.Start">
+                            TextAlignment="Alignment.Center">
                     @context.NombreCompleto
                 </GridColumn>
                 <GridColumn TItem="UserModel" HeaderText="# Documento Identidad" HeaderTextAlignment="Alignment.Center"
@@ -53,10 +54,6 @@
                 <GridColumn TItem="UserModel" HeaderText="Roles" HeaderTextAlignment="Alignment.Center"
                             TextAlignment="Alignment.Center">
                     @context.Roles
-                </GridColumn>
-                <GridColumn TItem="UserModel" HeaderText="Secciones" HeaderTextAlignment="Alignment.Center"
-                            TextAlignment="Alignment.Center">
-                    @context.Secciones
                 </GridColumn>
                 <GridColumn TItem="UserModel" HeaderText="Ultima Actividad" HeaderTextAlignment="Alignment.Center"
                             TextAlignment="Alignment.Center">
@@ -98,9 +95,6 @@
         
         // ROLES
         public string Roles { get; set; } = "";
-
-        // SECCIONES
-        public string Secciones { get; set; } = "";
     }
     #endregion
 
@@ -115,21 +109,23 @@
             ActualUserName = ActualUser.Identity.Name ?? "";
         }
 
-        var users = _userManager.Users;
+        var users = await _userManager.Users.ToListAsync();
         foreach (var user in users)
         {
             if (user.Email != ActualUserName)
             {
                 UserModel userList = new UserModel()
-                    {
-                        Correo = user.Email ?? "",
-                        NombreCompleto = string.Concat(user.Nombres, " ", user.Apellidos),
-                        NumeroDocumento = user.NumeroDocumentoIdentidad ?? "",
-                        LastLogin = user.LastLoginDate,
-                        IsActivo = user.IsActivo.ToString() ?? ""
-                    };
-                var rolename = await _userManager.GetRolesAsync(user);
-                userList.Roles = GetRoleDescription(rolename.ToList());
+                {
+                    Correo = user.Email ?? "",
+                    NombreCompleto = string.Concat(user.Nombres, " ", user.Apellidos),
+                    NumeroDocumento = user.NumeroDocumentoIdentidad ?? "",
+                    LastLogin = user.LastLoginDate,
+                    IsActivo = user.IsActivo.ToString()
+                };
+
+                var roles = await _userManager.GetRolesAsync(user);
+                userList.Roles = GetRoleDescription(roles.ToList());
+
                 Users.Add(userList);
             }
         }

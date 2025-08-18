@@ -83,6 +83,7 @@
                                 <label class="form-check-label" for="femenino">Femenino</label>
                             </div>
                         </InputRadioGroup>
+                        <ValidationMessage For="() => UserInfo.Genero" class="text-danger"/>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -124,18 +125,6 @@
                         <ValidationMessage For="() => UserInfo.InstalacionSalud" class="text-danger"/>
                     </div>
                 }
-                @* <div class="mb-3"> *@
-                @*     <label class="fw-bold">Contraseña</label> *@
-                @*     <InputText type="password" @bind-Value="UserInfo.Password" class="form-control" *@
-                @*         aria-required="true" /> *@
-                @*     <ValidationMessage For="() => UserInfo.Password" class="text-danger" /> *@
-                @* </div> *@
-                @* <div class="mb-3"> *@
-                @*     <label class="fw-bold">Confirmar Contraseña</label> *@
-                @*     <InputText type="password" @bind-Value="UserInfo.ConfirmPassword" class="form-control" *@
-                @*         aria-required="true" /> *@
-                @*     <ValidationMessage For="() => UserInfo.ConfirmPassword" class="text-danger" /> *@
-                @* </div> *@
 
                 <button type="submit" class="w-100 btn btn-sm btn-primary" disabled="@( UserInfo.IsFromDominio == null )" >Crear Usuario</button>
             </div>
@@ -191,49 +180,41 @@
     #endregion
 
     #region MODELOS
-    private sealed class UserModel
+    private sealed class UserModel : IValidatableObject
     {
         [Required]
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Debe ingresar un correo válido.")]
         [Display(Name = "Correo")]
         public string Correo { get; set; } = "";
 
-        // [Required]
-        // [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        // [DataType(DataType.Password)]
-        // [Display(Name = "Password")]
-        // public string Password { get; set; } = "";
-        //
-        // [DataType(DataType.Password)]
-        // [Display(Name = "Confirm password")]
-        // [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        // public string ConfirmPassword { get; set; } = "";
-
+        [Required]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "Los nombres solo puede contener letras.")]
         [Display(Name = "Nombres")]
         public string Nombres { get; set; } = "";
 
+        [Required]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "Los apellidos solo puede contener letras.")]
         [Display(Name = "Apellidos")]
         public string Apellidos { get; set; } = "";
 
+        [Required]
         [Display(Name = "Numero de Documento de Identidad")]
         public string NumeroDocumentoIdent { get; set; } = "";
 
-        [Display(Name = "Género")]
         public string Genero { get; set; } = "";
 
+        [Required]
+        [RegularExpression(@"^\d+$", ErrorMessage = "El teléfono movil solo puede contener números.")]
         [Display(Name = "Télefono Movil")]
         public string TelefonoMovil { get; set; } = "";
 
+        [Required]
+        [RegularExpression(@"^\d+$", ErrorMessage = "El teléfono laboral solo puede contener números.")]
         [Display(Name = "Télefono Laboral")]
         public string TelefonoLaboral { get; set; } = "";
 
-        [Display(Name = "Instalación de Salud")]
         public int? InstalacionSalud { get; set; }
-
-        [Display(Name = "Región de Salud")]
         public int RegionSalud { get; set; }
-
-        [Display(Name = "Tipo usuario")]
         public bool? IsFromDominio { get; set; } = null;
 
         // ROLES
@@ -241,6 +222,29 @@
         public bool Administrador { get; set; } = false;
         public bool Regional { get; set; } = false;
         public bool Local { get; set; } = false;
+        
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (string.IsNullOrWhiteSpace(Genero))
+            {
+                yield return new ValidationResult(
+                    "Debe seleccionar un género.",
+                    new[] { nameof(Genero) });
+            }
+            if (Local && (InstalacionSalud == null || InstalacionSalud == 0))
+            {
+                yield return new ValidationResult(
+                    "Debe seleccionar una Instalación de Salud.",
+                    new[] { nameof(InstalacionSalud) });
+            }
+
+            if (Regional && RegionSalud <= 0)
+            {
+                yield return new ValidationResult(
+                    "Debe seleccionar una Región de Salud.",
+                    new[] { nameof(RegionSalud) });
+            }
+        }
     }
     #endregion
 
@@ -261,24 +265,41 @@
                     "Debe seleccionar al menos un rol antes de guardar."));
                 return;
             }
+            string passwordToUse;
+
+            if (UserInfo.IsFromDominio == true)
+            {
+                passwordToUse = await CommonService.GetFakePassword();
+            }
+            else
+            {
+                passwordToUse = GenerarContrasenaTemporal();
+            }
+            
 
             ApplicationUser newUser = new ApplicationUser()
                 {
+                    UserName = UserInfo.Correo,
+                    Email = UserInfo.Correo,
                     Nombres = UserInfo.Nombres,
                     Apellidos = UserInfo.Apellidos,
                     NumeroDocumentoIdentidad = UserInfo.NumeroDocumentoIdent,
                     Genero = UserInfo.Genero,
+                    PhoneNumber = UserInfo.TelefonoMovil,
                     TelefonoLaboral = UserInfo.TelefonoLaboral,
+                    idRegionSalud = UserInfo.RegionSalud,
+                    idInstalacionSalud = UserInfo.InstalacionSalud,
                     CreatedAt = DateTime.Now,
                     EmailConfirmed = true,
+                    IsActivo = true,
                     IsFromActiveDirectory = (UserInfo.IsFromDominio == true)
                 };
 
-            ResultModel Resultado;
-            Resultado = await _UserService.CreateUser(newUser);
+            ResultModel Resultado = await _UserService.CreateUser(newUser, passwordToUse);
             if (Resultado.Resultado)
             {
-                IdentityResult? roleResult;
+                IdentityResult? roleResult = null;
+
                 if (UserInfo.SuperUser)
                 {
                     roleResult = await _UserManager.AddToRoleAsync(newUser, "super-user");
@@ -286,26 +307,34 @@
                 else if (UserInfo.Administrador)
                 {
                     roleResult = await _UserManager.AddToRoleAsync(newUser, "administrador");
-                    
+
                     if (roleResult.Succeeded)
                     {
                         if (UserInfo.Regional)
-                        {
                             await _UserManager.AddToRoleAsync(newUser, "regional");
-                        }
                         if (UserInfo.Local)
-                        {
                             await _UserManager.AddToRoleAsync(newUser, "local");
-                        }
-                        NavigationManager.NavigateTo("/admin/listusers");
                     }
+                }
+                else
+                {
+                    if (UserInfo.Regional)
+                        roleResult = await _UserManager.AddToRoleAsync(newUser, "regional");
+                    if (UserInfo.Local)
+                        roleResult = await _UserManager.AddToRoleAsync(newUser, "local");
                 }
 
                 _ToastService.Notify(new(ToastType.Success, "Validación", $"{DateTime.Now}", "Usuario creado exitosamente."));
-                NavigationManager.NavigateTo("/admin/listusers");
+                NavigationManager.NavigateTo("/admin/listausuarios");
             }
             else
             {
+                Console.WriteLine("Errores:");
+                foreach(var e in Resultado.Errores)
+                {
+                    Console.WriteLine(e);
+                }
+
                 string errors = "";
                 foreach (var item in Resultado.Errores)
                 {
@@ -318,6 +347,29 @@
         {
             _ToastService.Notify(new(ToastType.Danger, $"Error", $"{DateTime.Now}", $"Error: {ex.Message}."));
         }
+    }
+    
+    private string GenerarContrasenaTemporal()
+    {
+        var rnd = new Random();
+
+        const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string minusculas = "abcdefghijkmnpqrstuvwxyz";
+        const string digitos = "23456789";
+
+        string todos = mayusculas + minusculas + digitos;
+
+        char c1 = mayusculas[rnd.Next(mayusculas.Length)];
+        char c2 = minusculas[rnd.Next(minusculas.Length)];
+        char c3 = digitos[rnd.Next(digitos.Length)];
+
+        var passwordChars = new List<char> { c1, c2, c3 };
+        for (int i = 0; i < 7; i++)
+        {
+            passwordChars.Add(todos[rnd.Next(todos.Length)]);
+        }
+
+        return new string(passwordChars.OrderBy(x => rnd.Next()).ToArray());
     }
 
     private async Task ValidateEmail()
