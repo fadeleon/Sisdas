@@ -67,7 +67,7 @@
                 </div>
                 <div class="mb-3">
                     <label class="fw-bold">Número de Documento de Identidad <span class="text-muted ms-1">(Cédula o Pasaporte)</span> </label>
-                    <InputText @bind-Value="UserInfo.NumeroDocumentoIdent" class="form-control text-uppercase w-auto" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <InputText @bind-Value="UserInfo.NumeroDocumentoIdent" class="form-control text-uppercase w-auto" aria-required="true" disabled="@(!IsFromDominio.HasValue)" oninput="this.value = this.value.toUpperCase()" />
                     <ValidationMessage For="() => UserInfo.NumeroDocumentoIdent" class="text-danger"/>
                 </div>
                 <div class="mb-3">
@@ -75,11 +75,11 @@
                     <div>
                         <InputRadioGroup @bind-Value="UserInfo.Genero">
                             <div class="form-check form-check-inline">
-                                <InputRadio class="form-check-input" Value="@("M")" id="masculino" />
+                                <InputRadio class="form-check-input" Value="@("M")" id="masculino" disabled="@(!IsFromDominio.HasValue)" />
                                 <label class="form-check-label" for="masculino">Masculino</label>
                             </div>
                             <div class="form-check form-check-inline">
-                                <InputRadio class="form-check-input" Value="@("F")" id="femenino" />
+                                <InputRadio class="form-check-input" Value="@("F")" id="femenino" disabled="@(!IsFromDominio.HasValue)" />
                                 <label class="form-check-label" for="femenino">Femenino</label>
                             </div>
                         </InputRadioGroup>
@@ -87,37 +87,43 @@
                 </div>
                 <div class="mb-3">
                     <label class="fw-bold">Télefono Movil </label>
-                    <InputText @bind-Value="UserInfo.TelefonoMovil" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <InputText @bind-Value="UserInfo.TelefonoMovil" class="form-control text-uppercase" aria-required="true" disabled="@(!IsFromDominio.HasValue)" oninput="this.value = this.value.toUpperCase()" />
                     <ValidationMessage For="() => UserInfo.TelefonoMovil" class="text-danger"/>
                 </div>
                 <div class="mb-3">
                     <label class="fw-bold">Télefono Laboral </label>
-                    <InputText @bind-Value="UserInfo.TelefonoLaboral" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <InputText @bind-Value="UserInfo.TelefonoLaboral" class="form-control text-uppercase" aria-required="true" disabled="@(!IsFromDominio.HasValue)" oninput="this.value = this.value.toUpperCase()" />
                     <ValidationMessage For="() => UserInfo.TelefonoLaboral" class="text-danger"/>
                 </div>
-                <div class="mb-3">
-                    <label class="fw-bold">Region de Salud</label>
-                    <InputSelect @bind-Value="UserInfo.RegionSalud" class="form-select">
-                        <option value="">-- SELECIONE --</option>
-                        @foreach (var item in regionesSalud)
-                        {
-                            <option value="@item.IdRegion">@item?.NombreRegion?.ToUpper()</option>
-                        }
-                    </InputSelect>
-                    <ValidationMessage For="() => UserInfo.RegionSalud" class="text-danger"/>
-                </div>
-                <div class="mb-3">
-                    <label class="fw-bold">Instalación de Salud</label>
-                    <AutoComplete @bind-Value="filtroInstalaciones"
-                                  TItem="UserModel"
-                                  DataProvider="AutoCompleteDataProvider"
-                                  OnChanged="(UserModel Instalaciones) => OnAutoCompleteChanged(Instalaciones)"
-                                  PropertyName="Numero"
-                                  class="form-control"
-                                  Placeholder="Busque por instalación" />
-                    <ValidationMessage For="() => UserInfo.InstalacionSalud" class="text-danger"/>
-                </div>
-
+                @if (RegionalSelected)
+                {
+                    <div class="mb-3">
+                        <label class="fw-bold">Region de Salud</label>
+                        <InputSelect @bind-Value="UserInfo.RegionSalud" class="form-select" disabled="@(!IsFromDominio.HasValue)">
+                            <option value="0">-- SELECIONE --</option>
+                            @foreach (var item in regionesSalud)
+                            {
+                                <option value="@item.IdRegion">@item?.NombreRegion?.ToUpper()</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="() => UserInfo.RegionSalud" class="text-danger"/>
+                    </div>
+                }
+                @if (LocalSelected)
+                {
+                    <div class="mb-3">
+                        <label class="fw-bold">Instalación de Salud</label>
+                        <AutoComplete @bind-Value="filtroInstalaciones"
+                                      TItem="ListModel"
+                                      disabled="@(!IsFromDominio.HasValue)"
+                                      DataProvider="AutoCompleteDataProvider"
+                                      OnChanged="OnAutoCompleteChanged"
+                                      PropertyName="Name"
+                                      class="form-control"
+                                      Placeholder="Busque por instalación"/>
+                        <ValidationMessage For="() => UserInfo.InstalacionSalud" class="text-danger"/>
+                    </div>
+                }
                 @* <div class="mb-3"> *@
                 @*     <label class="fw-bold">Contraseña</label> *@
                 @*     <InputText type="password" @bind-Value="UserInfo.Password" class="form-control" *@
@@ -130,52 +136,43 @@
                 @*         aria-required="true" /> *@
                 @*     <ValidationMessage For="() => UserInfo.ConfirmPassword" class="text-danger" /> *@
                 @* </div> *@
+
                 <button type="submit" class="w-100 btn btn-sm btn-primary" disabled="@( UserInfo.IsFromDominio == null )" >Crear Usuario</button>
             </div>
             <div class="col-lg-6 col-sm-12 col-md-6">
                 <h4>Roles</h4>
+                <AuthorizeView Roles="super-user" Context="auth">
+                    <Authorized>
+                        <div class="form-check mb-1">
+                            <input id="chkSuperUser"
+                                   type="checkbox"
+                                   class="form-check-input"
+                                   @bind="UserInfo.SuperUser" />
+                            <label class="form-check-label" for="chkSuperUser">Super Usuario</label>
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class="form-check mb-1">
+                            <input id="chkSuperUserDisabled"
+                                   type="checkbox"
+                                   class="form-check-input"
+                                   disabled="true" />
+                            <label class="form-check-label" for="chkSuperUserDisabled" title="No tiene permiso">Super Usuario</label>
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
+
                 <div class="form-check mb-1">
-                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.SuperUser" />
-                    <label class="form-check-label">
-                        Super Usuario
-                    </label>
+                    <input id="chkAdministrador" type="checkbox" class="form-check-input" @bind="UserInfo.Administrador" />
+                    <label class="form-check-label" for="chkAdministrador">Administrador</label>
                 </div>
                 <div class="form-check mb-1">
-                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Administrador" />
-                    <label class="form-check-label">
-                        Administrador
-                    </label>
+                    <input id="chkRegional" type="checkbox" class="form-check-input" @bind="RegionalSelected" />
+                    <label class="form-check-label" for="chkRegional">Regional</label>
                 </div>
                 <div class="form-check mb-1">
-                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Captador" />
-                    <label class="form-check-label">
-                        Por Especificar
-                    </label>
-                </div>
-                <h4 class="my-2">Roles</h4>
-                <div class="form-check mb-1">
-                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Licencias" />
-                    <label class="form-check-label">
-                        Por Especificar
-                    </label>
-                </div>
-                <div class="form-check mb-1">
-                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Criterios" />
-                    <label class="form-check-label">
-                        Por Especificar
-                    </label>
-                </div>
-                <div class="form-check mb-1">
-                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Certificados" />
-                    <label class="form-check-label">
-                        Por Especificar
-                    </label>
-                </div>
-                <div class="form-check mb-1">
-                    <InputCheckbox class="form-check-input" @bind-Value="UserInfo.Registros" />
-                    <label class="form-check-label">
-                        Por Especificar
-                    </label>
+                    <input id="chkLocal" type="checkbox" class="form-check-input" @bind="LocalSelected" />
+                    <label class="form-check-label" for="chkLocal">Local</label>
                 </div>
             </div>
         </div>
@@ -190,11 +187,11 @@
     private List<string> ErrorsFormMessages { get; set; } = new();
     private bool UserFound { get; set; } = false;
     private List<CatRegionSalud> regionesSalud = new();
-    private string filtroInstalaciones;
+    private string filtroInstalaciones = "";
     #endregion
 
     #region MODELOS
-    private sealed class UserModel : IValidatableObject
+    private sealed class UserModel
     {
         [Required]
         [EmailAddress]
@@ -231,7 +228,7 @@
         public string TelefonoLaboral { get; set; } = "";
 
         [Display(Name = "Instalación de Salud")]
-        public int InstalacionSalud { get; set; }
+        public int? InstalacionSalud { get; set; }
 
         [Display(Name = "Región de Salud")]
         public int RegionSalud { get; set; }
@@ -242,30 +239,8 @@
         // ROLES
         public bool SuperUser { get; set; } = false;
         public bool Administrador { get; set; } = false;
-        public bool Captador { get; set; } = false;
-
-        // SECCIONES
-        public bool Certificados { get; set; } = false;
-        public bool Criterios { get; set; } = false;
-        public bool Licencias { get; set; } = false;
-        public bool Registros { get; set; } = false;
-
-        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-        {
-            if (IsFromDominio != true)
-            {
-                if (string.IsNullOrWhiteSpace(FirstName))
-                    yield return new ValidationResult("El nombre es requerido.", new[] { nameof(FirstName) });
-                if (string.IsNullOrWhiteSpace(LastName))
-                    yield return new ValidationResult("El apellido es requerido.", new[] { nameof(LastName) });
-            }
-
-            if (IsFromDominio is true or false)
-            {
-                if (string.IsNullOrWhiteSpace(Iniciales))
-                    yield return new ValidationResult("Las iniciales son requeridas.", new[] { nameof(Iniciales) });
-            }
-        }
+        public bool Regional { get; set; } = false;
+        public bool Local { get; set; } = false;
     }
     #endregion
 
@@ -280,9 +255,7 @@
     {
         try
         {
-            if (!(UserInfo.SuperUser || UserInfo.Administrador || UserInfo.Captador
-                  || UserInfo.Criterios || UserInfo.Licencias || UserInfo.Certificados
-                  || UserInfo.Registros))
+            if (!(UserInfo.SuperUser || UserInfo.Administrador || UserInfo.Regional || UserInfo.Local))
             {
                 _ToastService.Notify(new(ToastType.Warning, "Validación", $"{DateTime.Now}",
                     "Debe seleccionar al menos un rol antes de guardar."));
@@ -291,13 +264,13 @@
 
             ApplicationUser newUser = new ApplicationUser()
                 {
-                    UserName = UserInfo.Email,
-                    Email = UserInfo.Email,
-                    FirstName = UserInfo.FirstName,
-                    LastName = UserInfo.LastName,
+                    Nombres = UserInfo.Nombres,
+                    Apellidos = UserInfo.Apellidos,
+                    NumeroDocumentoIdentidad = UserInfo.NumeroDocumentoIdent,
+                    Genero = UserInfo.Genero,
+                    TelefonoLaboral = UserInfo.TelefonoLaboral,
                     CreatedAt = DateTime.Now,
                     EmailConfirmed = true,
-                    Iniciales = UserInfo.Iniciales,
                     IsFromActiveDirectory = (UserInfo.IsFromDominio == true)
                 };
 
@@ -310,36 +283,20 @@
                 {
                     roleResult = await _UserManager.AddToRoleAsync(newUser, "super-user");
                 }
-                else if (UserInfo.Administrador || UserInfo.Captador)
+                else if (UserInfo.Administrador)
                 {
-                    if (UserInfo.Captador)
-                    {
-                        roleResult = await _UserManager.AddToRoleAsync(newUser, "captador");
-                    }
-                    else
-                    {
-                        roleResult = await _UserManager.AddToRoleAsync(newUser, "administrador");
-                    }
-
+                    roleResult = await _UserManager.AddToRoleAsync(newUser, "administrador");
+                    
                     if (roleResult.Succeeded)
                     {
-                        if (UserInfo.Criterios)
+                        if (UserInfo.Regional)
                         {
-                            await _UserManager.AddToRoleAsync(newUser, "criterios");
+                            await _UserManager.AddToRoleAsync(newUser, "regional");
                         }
-                        if (UserInfo.Licencias)
+                        if (UserInfo.Local)
                         {
-                            await _UserManager.AddToRoleAsync(newUser, "licencias");
+                            await _UserManager.AddToRoleAsync(newUser, "local");
                         }
-                        if (UserInfo.Certificados)
-                        {
-                            await _UserManager.AddToRoleAsync(newUser, "certificados");
-                        }
-                        if (UserInfo.Registros)
-                        {
-                            await _UserManager.AddToRoleAsync(newUser, "registros");
-                        }
-
                         NavigationManager.NavigateTo("/admin/listusers");
                     }
                 }
@@ -367,7 +324,7 @@
     {
         ErrorsFormMessages.Clear();
 
-        var SearchUser = await _UserManager.FindByEmailAsync(UserInfo.Email);
+        var SearchUser = await _UserManager.FindByEmailAsync(UserInfo.Correo);
         if (SearchUser != null)
         {
             _ToastService.Notify(new(ToastType.Warning, "Validación", $"{DateTime.Now}", "El usuario ya está registrado en el sistema."));
@@ -375,20 +332,20 @@
         }
 
         ResultGenericModel<ActiveDirectoryUserModel> ActiveDirectoryUserModelData =
-            await _UserService.FindUserByEmail(UserInfo.Email);
+            await _UserService.FindUserByEmail(UserInfo.Correo);
 
         if (ActiveDirectoryUserModelData.Data != null)
         {
             UserFound = true;
-            UserInfo.LastName = ActiveDirectoryUserModelData.Data.lastName;
-            UserInfo.FirstName = ActiveDirectoryUserModelData.Data.firstName;
+            UserInfo.Apellidos = ActiveDirectoryUserModelData.Data.lastName;
+            UserInfo.Nombres = ActiveDirectoryUserModelData.Data.firstName;
             _ToastService.Notify(new(ToastType.Success, "Validación", $"{DateTime.Now}", "Usuario encontrado en AD"));
         }
         else
         {
             UserFound = false;
-            UserInfo.LastName = "";
-            UserInfo.FirstName = "";
+            UserInfo.Apellidos = "";
+            UserInfo.Nombres = "";
             _ToastService.Notify(new(ToastType.Danger, "Validación", $"{DateTime.Now}", "No se encuentro el usuario."));
         }
     }
@@ -402,10 +359,9 @@
 
             UserInfo.IsFromDominio = value;
 
-            UserInfo.Email = "";
-            UserInfo.FirstName = "";
-            UserInfo.LastName = "";
-            UserInfo.Iniciales = "";
+            UserInfo.Correo = "";
+            UserInfo.Nombres = "";
+            UserInfo.Apellidos = "";
 
             UserFound = false;
 
@@ -413,8 +369,8 @@
         }
     }
     
-    private async Task<AutoCompleteDataProviderResult<UserModel>> AutoCompleteDataProvider(
-        AutoCompleteDataProviderRequest<UserModel> request)
+    private async Task<AutoCompleteDataProviderResult<ListModel>> AutoCompleteDataProvider(
+        AutoCompleteDataProviderRequest<ListModel> request)
     {
 
         var filtro = (request.Filter?.Value?.ToString() ?? "").ToUpper();
@@ -434,27 +390,55 @@
             TotalCount = filtradas.Count()
         };
     }
-    private void OnAutoCompleteChanged(LicencialbModel? Licencia)
+    
+    private void OnAutoCompleteChanged(ListModel? instalacion)
     {
-        if (Licencia is null)
+        UserInfo.InstalacionSalud = instalacion?.Id;
+    }
+    
+    private bool RegionalSelected
+    {
+        get => UserInfo.Regional;
+        set
         {
-            certlibreventaModel.LicenciaId        = 0;
-            certlibreventaModel.NumeroLicencia    = "";
-            certlibreventaModel.NombreEmpresa    = "";
-            certlibreventaModel.EmpresaTipoEstablecimiento = "";
-            certlibreventaModel.EmpresaRuc = "";
-            certlibreventaModel.EmpresaRazonSocial = "";
-            certlibreventaModel.EmpresaDireccion = "";
-            return;
-        }
+            if (UserInfo.Regional == value) return;
 
-        certlibreventaModel.LicenciaId        = Licencia.Id;
-        certlibreventaModel.NumeroLicencia    = Licencia.Numero;
-        certlibreventaModel.NombreEmpresa    = Licencia.empresaNombre;
-        certlibreventaModel.EmpresaTipoEstablecimiento = Licencia.empresaTipoEstablecimiento ?? "";
-        certlibreventaModel.EmpresaRuc = Licencia.empresaRuc ?? "";
-        certlibreventaModel.EmpresaRazonSocial = Licencia.empresaRazonSocial ?? "";
-        certlibreventaModel.EmpresaDireccion = Licencia.empresaDireccion ?? "";
+            UserInfo.Regional = value;
+
+            if (value)
+            {
+                UserInfo.Local = false;
+            }
+            else
+            {
+                UserInfo.RegionSalud = 0;
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private bool LocalSelected
+    {
+        get => UserInfo.Local;
+        set
+        {
+            if (UserInfo.Local == value) return;
+
+            UserInfo.Local = value;
+
+            if (value)
+            {
+                UserInfo.Regional = false;
+            }
+            else
+            {
+                UserInfo.InstalacionSalud = null;
+                filtroInstalaciones = "";
+            }
+
+            StateHasChanged();
+        }
     }
 
     #endregion

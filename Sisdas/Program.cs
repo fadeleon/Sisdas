@@ -4,8 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Sisdas.Components;
 using Sisdas.Components.Account;
 using Sisdas.Data;
+using Sisdas.Models.Entities.Sisdas;
 using Sisdas.Repositorios.Interfaces;
 using Sisdas.Repositorios.Servicios;
+using BlazorBootstrap;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,8 @@ var ConnectionStrings = new MySqlConnector.MySqlConnectionStringBuilder()
 }.ToString();
 
 builder.Services.AddDbContextFactory<ApplicationDbContext>(options => options.UseMySql(ConnectionStrings, ServerVersion.AutoDetect(ConnectionStrings)));
+builder.Services.AddDbContextFactory<DBContextSisdas>(options =>
+    options.UseMySql(ConnectionStrings, ServerVersion.AutoDetect(ConnectionStrings)));
 
 builder.Services.AddTransient<ICommon, CommonService>();
 builder.Services.AddScoped<IUserData, UserDataService>();
@@ -44,12 +48,20 @@ builder.Services.AddTransient<ILocalStorage, LocalStorageService>();
 
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+builder.Services.AddIdentityCore<ApplicationUser>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = false;
+    options.Password.RequiredLength = 8;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireDigit = true;
+}).AddRoles<IdentityRole>().AddEntityFrameworkStores<ApplicationDbContext>().AddSignInManager().AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+builder.Services.AddHttpClient();
+builder.Services.AddBlazorBootstrap();
 
 var app = builder.Build();
 

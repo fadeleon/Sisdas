@@ -35,19 +35,19 @@ public class CommonService : ICommon
     {
         try
         {
-            await using var ctx = await _Context.CreateDbContextAsync();
-            var query = ctx.TbInstalacionSalud.AsQueryable();
+            await using var ctx = await _ContextCommon.CreateDbContextAsync();
+            var query = ctx.CatUnidadNotificadora.AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(filtro))
-                query = query.Where(i => i.Nombre!.Contains(filtro));
+            if (!string.IsNullOrWhiteSpace(filtroInst))
+                query = query.Where(i => i.NombreUn!.Contains(filtroInst));
 
             return await query
-                .OrderBy(i => i.Nombre)
+                .OrderBy(i => i.NombreUn)
                 .Select(x => new ListModel {
-                    Id   = x.Id,
-                    Name = x.Nombre ?? ""
+                    Id   = x.IdUn,
+                    Name = x.NombreUn ?? ""
                 })
-                .Take(20)        // límite de resultados
+                .Take(20)
                 .ToListAsync();
         }
         catch

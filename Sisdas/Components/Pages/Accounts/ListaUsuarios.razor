@@ -17,7 +17,7 @@
                 <h3 class="mb-0 fw-bold">Usuarios</h3>
             </div>
             <div class="col ms-auto">
-                <NavLink class="btn btn-sm btn-primary" href="/admin/createuser" Match="NavLinkMatch.All">
+                <NavLink class="btn btn-sm btn-primary" href="/admin/crearusuario" Match="NavLinkMatch.All">
                     <i class="fa-solid fa-user-plus"></i> Crear Usuario
                 </NavLink>
             </div>
@@ -130,7 +130,6 @@
                     };
                 var rolename = await _userManager.GetRolesAsync(user);
                 userList.Roles = GetRoleDescription(rolename.ToList());
-                userList.Secciones = GetDepartamentos(rolename.ToList());
                 Users.Add(userList);
             }
         }
@@ -152,9 +151,14 @@
                 roles += "Administrador, ";
             }
 
-            if (item == "captador")
+            if (item == "regional")
             {
-                roles += "Captador, ";
+                roles += "Regional, ";
+            }
+            
+            if (item == "local")
+            {
+                roles += "Local, ";
             }
         }
 
@@ -162,34 +166,6 @@
         roles = roles.Length > 0 ? roles.Substring(0, roles.Length - 1) : "";
 
         return roles;
-    }
-
-    private string GetDepartamentos(List<string> Departamentos)
-    {
-        string secciones = "";
-        foreach (var item in Departamentos)
-        {
-            if (item == "certificados")
-            {
-                secciones = "Certificados";
-            }
-
-            if (item == "registros")
-            {
-                secciones = "Registros";
-            }
-
-            if (item == "licencias")
-            {
-                secciones = "Licencias";
-            }
-
-            if (item == "criterios")
-            {
-                secciones = "Criterios Técnicos";
-            }
-        }
-        return secciones;
     }
 
     private async Task<GridDataProviderResult<UserModel>> GridDataProvider(GridDataProviderRequest<UserModel>
