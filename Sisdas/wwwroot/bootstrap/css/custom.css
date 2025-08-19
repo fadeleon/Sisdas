@@ -1,87 +1,88 @@
-﻿.sisdas-logo {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Poppins', sans-serif;
-    font-weight: 700;
-    font-size: 2.2rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    padding: 0.45rem 1.6rem;
-    border-radius: 14px;
-    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(59, 130, 246, 0.12);
-    overflow: hidden;
-}
+﻿/*.sisdas-logo {*/
+/*    position: relative;*/
+/*    display: inline-flex;*/
+/*    align-items: center;*/
+/*    justify-content: center;*/
+/*    font-family: 'Poppins', sans-serif;*/
+/*    font-weight: 700;*/
+/*    font-size: 1rem;*/
+/*    letter-spacing: 2px;*/
+/*    text-transform: uppercase;*/
+/*    padding: 0.2rem 0.6rem;*/
+/*    border-radius: 8px;*/
+/*    background: #fff;*/
+/*    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);*/
+/*    border: 1px solid rgba(59, 130, 246, 0.12);*/
+/*    overflow: hidden;*/
+/*}*/
 
-.sisdas-logo::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -60%;
-    width: 30%;
-    height: 100%;
-    background: linear-gradient(90deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.6) 50%,
-    rgba(255,255,255,0) 100%);
-    filter: blur(6px);
-    opacity: 0.95;
-    pointer-events: none;
-    z-index: 3;
-    mix-blend-mode: screen;
-    animation: sisdas-shine-full 2.2s linear infinite;
-}
+/*.sisdas-logo::after {*/
+/*    content: '';*/
+/*    position: absolute;*/
+/*    top: 0;*/
+/*    left: -60%;*/
+/*    width: 30%;*/
+/*    height: 100%;*/
+/*    background: linear-gradient(90deg,*/
+/*    rgba(255,255,255,0) 0%,*/
+/*    rgba(255,255,255,0.6) 50%,*/
+/*    rgba(255,255,255,0) 100%);*/
+/*    filter: blur(6px);*/
+/*    opacity: 0.95;*/
+/*    pointer-events: none;*/
+/*    z-index: 3;*/
+/*    mix-blend-mode: screen;*/
+/*    animation: sisdas-shine-full 2.2s linear infinite;*/
+/*}*/
 
-@keyframes sisdas-shine-full {
-    0%   { left: -60%; }
-    100% { left: 120%; }
-}
+/*@keyframes sisdas-shine-full {*/
+/*    0%   { left: -60%; }*/
+/*    100% { left: 120%; }*/
+/*}*/
 
-.sisdas-logo .sisdas-text {
-    position: relative;
-    z-index: 2;
-    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    -webkit-text-stroke: 0.6px rgba(0,0,0,0.12);
-    text-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 3px 10px rgba(59,130,246,0.18);
-}
+/*.sisdas-logo .sisdas-text {*/
+/*    position: relative;*/
+/*    z-index: 2;*/
+/*    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);*/
+/*    -webkit-background-clip: text;*/
+/*    background-clip: text;*/
+/*    -webkit-text-fill-color: transparent;*/
+/*    -webkit-text-stroke: 0.6px rgba(0,0,0,0.12);*/
+/*    text-shadow: 0 1px 0 rgba(255,255,255,0.03), 0 3px 10px rgba(59,130,246,0.18);*/
+/*}*/
 
-.sisdas-logo .sisdas-text::after {
-    content: '';
-    position: absolute;
-    bottom: 0px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 56%;
-    height: 1.6px;
-    background: linear-gradient(90deg, transparent, #3b82f6, transparent);
-    border-radius: 2px;
-    opacity: 0.98;
-    z-index: 2;
-}
+/*.sisdas-logo .sisdas-text::after {*/
+/*    content: '';*/
+/*    position: absolute;*/
+/*    bottom: 0px;*/
+/*    left: 50%;*/
+/*    transform: translateX(-50%);*/
+/*    width: 56%;*/
+/*    height: 1.6px;*/
+/*    background: linear-gradient(90deg, transparent, #3b82f6, transparent);*/
+/*    border-radius: 2px;*/
+/*    opacity: 0.98;*/
+/*    z-index: 2;*/
+/*}*/
 
-@media (max-width: 576px) {
-    .sisdas-logo {
-        font-size: 1.45rem;
-        padding: 0.36rem 1rem;
-        border-radius: 12px;
-    }
-    .sisdas-logo::after {
-        width: 40%;
-        filter: blur(5px);
-        animation-duration: 2.6s;
-    }
-    .sisdas-logo .sisdas-text::after {
-        bottom: 0;
-        height: 1.2px;
-        width: 60%;
-    }
-}
+/*@media (max-width: 576px) {*/
+/*    .sisdas-logo {*/
+/*        font-size: 1.45rem;*/
+/*        padding: 0.36rem 1rem;*/
+/*        border-radius: 12px;*/
+/*    }*/
+/*    .sisdas-logo::after {*/
+/*        width: 40%;*/
+/*        filter: blur(5px);*/
+/*        animation-duration: 2.6s;*/
+/*    }*/
+/*    .sisdas-logo .sisdas-text::after {*/
+/*        bottom: 0;*/
+/*        height: 1.2px;*/
+/*        width: 60%;*/
+/*    }*/
+/*}*/
 
-.text-uppercase {
-    text-transform: uppercase;
-}
+/*.text-uppercase {*/
+/*    text-transform: uppercase;*/
+/*}*/

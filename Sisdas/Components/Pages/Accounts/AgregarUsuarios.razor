@@ -1,4 +1,4 @@
-@page "/admin/crearusuario"
+@page "/admin/crearusuario/{UserId?}"
 @layout DashBoardLayout
 @using System.ComponentModel.DataAnnotations
 @using Microsoft.AspNetCore.Authorization
@@ -19,7 +19,7 @@
 
 <div class="container-fluid p-3">
     <EditForm Model="UserInfo" method="post" OnValidSubmit="RegisterNewUser" FormName="register">
-        <h3>Registrar Usuario</h3>
+        <h3>@(IsEdit ? "Editar Usuario" : "Registrar Usuario")</h3>
         <div class="row">
             <div class="col-lg-6 col-sm-12 col-md-6">
                 <h4 class="mb-5">Datos Generales</h4>
@@ -28,16 +28,18 @@
                 <div class="mb-3">
                     <label class="fw-bold">¿Es usuario del minsa?</label>
                     <div>
-                        <InputRadioGroup @bind-Value="IsFromDominio">
-                            <div class="form-check form-check-inline">
-                                <InputRadio class="form-check-input" Value="true" id="dominioSi"/>
-                                <label class="form-check-label" for="dominioSi">Sí</label>
-                            </div>         
-                            <div class="form-check form-check-inline">
-                                <InputRadio class="form-check-input" Value="false" id="dominioNo"/>
-                                <label class="form-check-label" for="dominioNo">No</label>
-                            </div>
-                        </InputRadioGroup>
+                        <fieldset disabled="@IsEdit" style="border:0;padding:0;margin:0">
+                            <InputRadioGroup @bind-Value="IsFromDominio">
+                                <div class="form-check form-check-inline">
+                                    <InputRadio class="form-check-input" Value="true" id="dominioSi"/>
+                                    <label class="form-check-label" for="dominioSi">Sí</label>
+                                </div>         
+                                <div class="form-check form-check-inline">
+                                    <InputRadio class="form-check-input" Value="false" id="dominioNo"/>
+                                    <label class="form-check-label" for="dominioNo">No</label>
+                                </div>
+                            </InputRadioGroup>
+                        </fieldset>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -45,24 +47,28 @@
                     <div class="d-flex flex-wrap gap-2 align-items-start">
                         <div class="flex-grow-1">
                             <InputText id="correo" @bind-Value="UserInfo.Correo" class="form-control"
-                                       placeholder="nombre@ejemplo.com" aria-required="true" disabled="@(UserInfo.IsFromDominio == null)"/>
+                                       placeholder="nombre@ejemplo.com" aria-required="true"
+                                       disabled="@(IsEdit || UserInfo.IsFromDominio == null)"/>
                             <ValidationMessage For="() => UserInfo.Correo" class="text-danger" />
                         </div>
                         <div>
-                            <button type="button" class="btn btn-outline-primary" @onclick="ValidateEmail" disabled="@( UserInfo.IsFromDominio != true )" >
-                                <i class="fa-solid fa-magnifying-glass me-1"></i>Validar
-                            </button>
+                            @if (UserInfo.IsFromDominio == true)
+                            {
+                                <button type="button" class="btn btn-outline-primary" @onclick="ValidateEmail" disabled="@IsEdit">
+                                    <i class="fa-solid fa-magnifying-glass me-1"></i>Validar
+                                </button>
+                            }
                         </div>
                     </div>
                 </div>
                 <div class="mb-3">
                     <label class="fw-bold">Nombres <span class="text-muted ms-1">(Primer y Segundo Nombre)</span> </label>
-                    <InputText @bind-Value="UserInfo.Nombres" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <InputText @bind-Value="UserInfo.Nombres" class="form-control text-uppercase" aria-required="true" disabled="@((IsEdit && UserInfo.IsFromDominio == true) || (UserInfo.IsFromDominio != false))" oninput="this.value = this.value.toUpperCase()" />
                     <ValidationMessage For="() => UserInfo.Nombres" class="text-danger"/>
                 </div>
                 <div class="mb-3">
                     <label class="fw-bold">Apellidos <span class="text-muted ms-1">(Primer y Segundo Apellido)</span> </label>
-                    <InputText @bind-Value="UserInfo.Apellidos" class="form-control text-uppercase" aria-required="true" disabled="@( UserInfo.IsFromDominio != false )" oninput="this.value = this.value.toUpperCase()" />
+                    <InputText @bind-Value="UserInfo.Apellidos" class="form-control text-uppercase" aria-required="true" disabled="@((IsEdit && UserInfo.IsFromDominio == true) || (UserInfo.IsFromDominio != false))" oninput="this.value = this.value.toUpperCase()" />
                     <ValidationMessage For="() => UserInfo.Apellidos" class="text-danger"/>
                 </div>
                 <div class="mb-3">
@@ -125,8 +131,14 @@
                         <ValidationMessage For="() => UserInfo.InstalacionSalud" class="text-danger"/>
                     </div>
                 }
-
-                <button type="submit" class="w-100 btn btn-sm btn-primary" disabled="@( UserInfo.IsFromDominio == null )" >Crear Usuario</button>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary col-6" disabled="@(((UserInfo.IsFromDominio == null) && !IsEdit))">
+                        @(IsEdit ? "Actualizar Usuario" : "Crear Usuario")
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary col-6"@onclick="Cancel">
+                        Cancelar
+                    </button>
+                </div>
             </div>
             <div class="col-lg-6 col-sm-12 col-md-6">
                 <h4>Roles</h4>
@@ -171,15 +183,25 @@
 @code
 {
     #region VARIABLES
+    
     [Inject] protected ToastService _ToastService { get; set; } = default!;
+    [Parameter] public string? UserId { get; set; }
+
     private UserModel UserInfo { get; set; } = new();
-    private List<string> ErrorsFormMessages { get; set; } = new();
+    private ApplicationUser? editingUser;
+    
     private bool UserFound { get; set; } = false;
+    private string filtroInstalaciones { get; set; } = "";
+    private int? instalacionSeleccionadaId { get; set; }
+    private bool IsEdit => !string.IsNullOrEmpty(UserId);
+    
     private List<CatRegionSalud> regionesSalud = new();
-    private string filtroInstalaciones = "";
+    private List<string> ErrorsFormMessages { get; set; } = new();
+
     #endregion
 
     #region MODELOS
+    
     private sealed class UserModel : IValidatableObject
     {
         [Required]
@@ -246,6 +268,7 @@
             }
         }
     }
+    
     #endregion
 
     #region EVENTOS
@@ -254,126 +277,73 @@
     {
         regionesSalud = await CommonService.GetRegiones();
     }
-
-    private async Task RegisterNewUser()
+    
+    protected override async Task OnParametersSetAsync()
     {
-        try
+        regionesSalud = await CommonService.GetRegiones();
+
+        if (!string.IsNullOrEmpty(UserId))
         {
-            if (!(UserInfo.SuperUser || UserInfo.Administrador || UserInfo.Regional || UserInfo.Local))
+            editingUser = await _UserManager.FindByIdAsync(UserId);
+            if (editingUser == null)
             {
-                _ToastService.Notify(new(ToastType.Warning, "Validación", $"{DateTime.Now}",
-                    "Debe seleccionar al menos un rol antes de guardar."));
+                _ToastService.Notify(new(ToastType.Warning, "Usuario", $"{DateTime.Now}", "Usuario no encontrado."));
+                NavigationManager.NavigateTo("/admin/listausuarios");
                 return;
             }
-            string passwordToUse;
 
-            if (UserInfo.IsFromDominio == true)
+            UserInfo.Correo = editingUser.Email ?? "";
+            UserInfo.Nombres = editingUser.Nombres ?? "";
+            UserInfo.Apellidos = editingUser.Apellidos ?? "";
+            UserInfo.NumeroDocumentoIdent = editingUser.NumeroDocumentoIdentidad ?? "";
+            UserInfo.Genero = editingUser.Genero ?? "";
+            UserInfo.TelefonoMovil = editingUser.PhoneNumber ?? "";
+            UserInfo.TelefonoLaboral = editingUser.TelefonoLaboral ?? "";
+            UserInfo.RegionSalud = editingUser.idRegionSalud;
+            UserInfo.InstalacionSalud = editingUser.idInstalacionSalud;
+            UserInfo.IsFromDominio = editingUser.IsFromActiveDirectory;
+
+            if (UserInfo.InstalacionSalud.HasValue)
             {
-                passwordToUse = await CommonService.GetFakePassword();
-            }
-            else
-            {
-                passwordToUse = GenerarContrasenaTemporal();
+                var inst = await CommonService.GetInstalacionById(UserInfo.InstalacionSalud.Value);
+                if (inst != null)
+                {
+                    filtroInstalaciones = inst.Name;
+                    instalacionSeleccionadaId = inst.Id;
+                }
             }
             
+            var roles = await _UserManager.GetRolesAsync(editingUser);
+            UserInfo.SuperUser = roles.Contains("super-user");
+            UserInfo.Administrador = roles.Contains("administrador");
+            UserInfo.Regional = roles.Contains("regional");
+            UserInfo.Local = roles.Contains("local");
 
-            ApplicationUser newUser = new ApplicationUser()
-                {
-                    UserName = UserInfo.Correo,
-                    Email = UserInfo.Correo,
-                    Nombres = UserInfo.Nombres,
-                    Apellidos = UserInfo.Apellidos,
-                    NumeroDocumentoIdentidad = UserInfo.NumeroDocumentoIdent,
-                    Genero = UserInfo.Genero,
-                    PhoneNumber = UserInfo.TelefonoMovil,
-                    TelefonoLaboral = UserInfo.TelefonoLaboral,
-                    idRegionSalud = UserInfo.RegionSalud,
-                    idInstalacionSalud = UserInfo.InstalacionSalud,
-                    CreatedAt = DateTime.Now,
-                    EmailConfirmed = true,
-                    IsActivo = true,
-                    IsFromActiveDirectory = (UserInfo.IsFromDominio == true)
-                };
+            RegionalSelected = UserInfo.Regional;
+            LocalSelected = UserInfo.Local;
 
-            ResultModel Resultado = await _UserService.CreateUser(newUser, passwordToUse);
-            if (Resultado.Resultado)
-            {
-                IdentityResult? roleResult = null;
-
-                if (UserInfo.SuperUser)
-                {
-                    roleResult = await _UserManager.AddToRoleAsync(newUser, "super-user");
-                }
-                else if (UserInfo.Administrador)
-                {
-                    roleResult = await _UserManager.AddToRoleAsync(newUser, "administrador");
-
-                    if (roleResult.Succeeded)
-                    {
-                        if (UserInfo.Regional)
-                            await _UserManager.AddToRoleAsync(newUser, "regional");
-                        if (UserInfo.Local)
-                            await _UserManager.AddToRoleAsync(newUser, "local");
-                    }
-                }
-                else
-                {
-                    if (UserInfo.Regional)
-                        roleResult = await _UserManager.AddToRoleAsync(newUser, "regional");
-                    if (UserInfo.Local)
-                        roleResult = await _UserManager.AddToRoleAsync(newUser, "local");
-                }
-
-                _ToastService.Notify(new(ToastType.Success, "Validación", $"{DateTime.Now}", "Usuario creado exitosamente."));
-                NavigationManager.NavigateTo("/admin/listausuarios");
-            }
-            else
-            {
-                Console.WriteLine("Errores:");
-                foreach(var e in Resultado.Errores)
-                {
-                    Console.WriteLine(e);
-                }
-
-                string errors = "";
-                foreach (var item in Resultado.Errores)
-                {
-                    errors += item + "\n";
-                }
-                _ToastService.Notify(new(ToastType.Danger, $"Error", $"{DateTime.Now}", $"Error: {errors}."));
-            }
+            StateHasChanged();
         }
-        catch (Exception ex)
+        else
         {
-            _ToastService.Notify(new(ToastType.Danger, $"Error", $"{DateTime.Now}", $"Error: {ex.Message}."));
+            editingUser = null;
+            UserInfo = new UserModel();
+            RegionalSelected = false;
+            LocalSelected = false;
         }
     }
-    
-    private string GenerarContrasenaTemporal()
+
+    private void Cancel()
     {
-        var rnd = new Random();
-
-        const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-        const string minusculas = "abcdefghijkmnpqrstuvwxyz";
-        const string digitos = "23456789";
-
-        string todos = mayusculas + minusculas + digitos;
-
-        char c1 = mayusculas[rnd.Next(mayusculas.Length)];
-        char c2 = minusculas[rnd.Next(minusculas.Length)];
-        char c3 = digitos[rnd.Next(digitos.Length)];
-
-        var passwordChars = new List<char> { c1, c2, c3 };
-        for (int i = 0; i < 7; i++)
-        {
-            passwordChars.Add(todos[rnd.Next(todos.Length)]);
-        }
-
-        return new string(passwordChars.OrderBy(x => rnd.Next()).ToArray());
+        NavigationManager.NavigateTo("/admin/listausuarios");
     }
 
     private async Task ValidateEmail()
     {
+        if (IsEdit)
+        {
+            return;
+        }
         ErrorsFormMessages.Clear();
 
         var SearchUser = await _UserManager.FindByEmailAsync(UserInfo.Correo);
@@ -424,28 +394,53 @@
     private async Task<AutoCompleteDataProviderResult<ListModel>> AutoCompleteDataProvider(
         AutoCompleteDataProviderRequest<ListModel> request)
     {
-
         var filtro = (request.Filter?.Value?.ToString() ?? "").ToUpper();
-
         var lista = await CommonService.GetInstalaciones(filtro);
-
-
-        var filtradas = lista.Select(x => new ListModel
-        {
-            Id = x.Id,
-            Name = x.Name.Trim()
-        });
 
         return new AutoCompleteDataProviderResult<ListModel>
         {
-            Data = filtradas,
-            TotalCount = filtradas.Count()
+            Data = lista,
+            TotalCount = lista.Count
         };
     }
     
     private void OnAutoCompleteChanged(ListModel? instalacion)
     {
-        UserInfo.InstalacionSalud = instalacion?.Id;
+        if (instalacion != null)
+        {
+            filtroInstalaciones = instalacion.Name; 
+            instalacionSeleccionadaId = instalacion.Id;
+            UserInfo.InstalacionSalud = instalacion.Id;
+        }
+        else
+        {
+            filtroInstalaciones = "";
+            instalacionSeleccionadaId = null;
+            UserInfo.InstalacionSalud = null;
+        }
+    }
+    
+    private string GenerarContrasenaTemporal()
+    {
+        var rnd = new Random();
+
+        const string mayusculas = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string minusculas = "abcdefghijkmnpqrstuvwxyz";
+        const string digitos = "23456789";
+
+        string todos = mayusculas + minusculas + digitos;
+
+        char c1 = mayusculas[rnd.Next(mayusculas.Length)];
+        char c2 = minusculas[rnd.Next(minusculas.Length)];
+        char c3 = digitos[rnd.Next(digitos.Length)];
+
+        var passwordChars = new List<char> { c1, c2, c3 };
+        for (int i = 0; i < 7; i++)
+        {
+            passwordChars.Add(todos[rnd.Next(todos.Length)]);
+        }
+
+        return new string(passwordChars.OrderBy(x => rnd.Next()).ToArray());
     }
     
     private bool RegionalSelected
@@ -460,6 +455,8 @@
             if (value)
             {
                 UserInfo.Local = false;
+                UserInfo.InstalacionSalud = null;
+                filtroInstalaciones = null;
             }
             else
             {
@@ -482,14 +479,146 @@
             if (value)
             {
                 UserInfo.Regional = false;
+                UserInfo.RegionSalud = 0;
             }
             else
             {
                 UserInfo.InstalacionSalud = null;
-                filtroInstalaciones = "";
+                filtroInstalaciones = null;
             }
 
             StateHasChanged();
+        }
+    }
+    
+    private async Task RegisterNewUser()
+    {
+        try
+        {
+            if (!(UserInfo.SuperUser || UserInfo.Administrador || UserInfo.Regional || UserInfo.Local))
+            {
+                _ToastService.Notify(new(ToastType.Warning, "Validación", $"{DateTime.Now}",
+                    "Debe seleccionar al menos un rol antes de guardar."));
+                return;
+            }
+
+            if (IsEdit && editingUser != null)
+            {
+                editingUser.UserName = UserInfo.Correo;
+                editingUser.Email = UserInfo.Correo;
+                editingUser.Nombres = UserInfo.Nombres;
+                editingUser.Apellidos = UserInfo.Apellidos;
+                editingUser.NumeroDocumentoIdentidad = UserInfo.NumeroDocumentoIdent;
+                editingUser.Genero = UserInfo.Genero;
+                editingUser.PhoneNumber = UserInfo.TelefonoMovil;
+                editingUser.TelefonoLaboral = UserInfo.TelefonoLaboral;
+                editingUser.idRegionSalud = UserInfo.RegionSalud;
+                editingUser.idInstalacionSalud = UserInfo.InstalacionSalud;
+                editingUser.IsFromActiveDirectory = (UserInfo.IsFromDominio == true);
+
+                var updateResult = await _UserManager.UpdateAsync(editingUser);
+                if (!updateResult.Succeeded)
+                {
+                    var errs = string.Join(", ", updateResult.Errors.Select(e => e.Description));
+                    _ToastService.Notify(new(ToastType.Danger, "Error", $"{DateTime.Now}", $"No se pudo actualizar el usuario: {errs}"));
+                    return;
+                }
+
+                var currentRoles = await _UserManager.GetRolesAsync(editingUser);
+                var desiredRoles = new List<string>();
+                if (UserInfo.SuperUser) desiredRoles.Add("super-user");
+                if (UserInfo.Administrador) desiredRoles.Add("administrador");
+                if (UserInfo.Regional) desiredRoles.Add("regional");
+                if (UserInfo.Local) desiredRoles.Add("local");
+
+                var rolesToAdd = desiredRoles.Except(currentRoles).ToArray();
+                var rolesToRemove = currentRoles.Except(desiredRoles).ToArray();
+
+                if (rolesToRemove.Any())
+                {
+                    var remRes = await _UserManager.RemoveFromRolesAsync(editingUser, rolesToRemove);
+                    if (!remRes.Succeeded)
+                    {
+                        var errs = string.Join(", ", remRes.Errors.Select(e => e.Description));
+                        _ToastService.Notify(new(ToastType.Warning, "Roles", $"{DateTime.Now}", $"Error al remover roles: {errs}"));
+                    }
+                }
+
+                if (rolesToAdd.Any())
+                {
+                    var addRes = await _UserManager.AddToRolesAsync(editingUser, rolesToAdd);
+                    if (!addRes.Succeeded)
+                    {
+                        var errs = string.Join(", ", addRes.Errors.Select(e => e.Description));
+                        _ToastService.Notify(new(ToastType.Warning, "Roles", $"{DateTime.Now}", $"Error al agregar roles: {errs}"));
+                    }
+                }
+
+                _ToastService.Notify(new(ToastType.Success, "Actualizado", $"{DateTime.Now}", "Usuario actualizado correctamente."));
+                NavigationManager.NavigateTo("/admin/listausuarios");
+                return;
+            }
+
+            string passwordToUse;
+            if (UserInfo.IsFromDominio == true)
+            {
+                passwordToUse = await CommonService.GetFakePassword();
+            }
+            else
+            {
+                passwordToUse = GenerarContrasenaTemporal();
+            }
+
+            ApplicationUser newUser = new ApplicationUser()
+            {
+                UserName = UserInfo.Correo,
+                Email = UserInfo.Correo,
+                Nombres = UserInfo.Nombres,
+                Apellidos = UserInfo.Apellidos,
+                NumeroDocumentoIdentidad = UserInfo.NumeroDocumentoIdent,
+                Genero = UserInfo.Genero,
+                PhoneNumber = UserInfo.TelefonoMovil,
+                TelefonoLaboral = UserInfo.TelefonoLaboral,
+                idRegionSalud = UserInfo.RegionSalud,
+                idInstalacionSalud = UserInfo.InstalacionSalud,
+                CreatedAt = DateTime.Now,
+                EmailConfirmed = true,
+                IsActivo = true,
+                IsFromActiveDirectory = (UserInfo.IsFromDominio == true)
+            };
+
+            ResultModel Resultado = await _UserService.CreateUser(newUser, passwordToUse);
+            if (Resultado.Resultado)
+            {
+                if (UserInfo.SuperUser)
+                    await _UserManager.AddToRoleAsync(newUser, "super-user");
+                else if (UserInfo.Administrador)
+                {
+                    var roleResult = await _UserManager.AddToRoleAsync(newUser, "administrador");
+                    if (roleResult.Succeeded)
+                    {
+                        if (UserInfo.Regional) await _UserManager.AddToRoleAsync(newUser, "regional");
+                        if (UserInfo.Local) await _UserManager.AddToRoleAsync(newUser, "local");
+                    }
+                }
+                else
+                {
+                    if (UserInfo.Regional) await _UserManager.AddToRoleAsync(newUser, "regional");
+                    if (UserInfo.Local) await _UserManager.AddToRoleAsync(newUser, "local");
+                }
+
+                _ToastService.Notify(new(ToastType.Success, "Validación", $"{DateTime.Now}", "Usuario creado exitosamente."));
+                NavigationManager.NavigateTo("/admin/listausuarios");
+            }
+            else
+            {
+                var errors = string.Join("\n", Resultado.Errores ?? new List<string>());
+                _ToastService.Notify(new(ToastType.Danger, $"Error", $"{DateTime.Now}", $"Error: {Resultado.Mensaje}. {errors}"));
+            }
+        }
+        catch (Exception ex)
+        {
+            _ToastService.Notify(new(ToastType.Danger, $"Error", $"{DateTime.Now}", $"Error: {ex.Message}."));
         }
     }
 

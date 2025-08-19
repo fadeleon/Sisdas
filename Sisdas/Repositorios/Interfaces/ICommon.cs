@@ -8,4 +8,5 @@ public interface ICommon
     Task<string> GetFakePassword();
     Task<List<CatRegionSalud>> GetRegiones();
     Task<List<ListModel>> GetInstalaciones(string filtroInst);
+    Task<ListModel?> GetInstalacionById(int id);
 }

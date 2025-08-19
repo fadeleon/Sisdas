@@ -15,7 +15,7 @@
     <div class="card-header">
         <div class="row row-cols-lg-auto g-3 align-items-center">
             <div class="col">
-                <h3 class="mb-0 fw-bold">Usuarios</h3>
+                <h3 class="mb-0 fw-medium">Lista de Usuarios</h3>
             </div>
             <div class="col ms-auto">
                 <NavLink class="btn btn-sm btn-primary" href="/admin/crearusuario" Match="NavLinkMatch.All">
@@ -59,9 +59,17 @@
                             TextAlignment="Alignment.Center">
                     @context.LastLogin
                 </GridColumn>
-                <GridColumn TItem="UserModel" HeaderText="¿Usuario Activo?" HeaderTextAlignment="Alignment.Center"
-                    TextAlignment="Alignment.Center">
-                    @context.IsActivo
+                <GridColumn TItem="UserModel" HeaderText="Acciones" HeaderTextAlignment="Alignment.Center" Class="p-0"
+                            TextAlignment="Alignment.Center">
+                    <ChildContent>
+                        <div class="btn-group border my-1" role="group" aria-label="acciones">
+                            <a class="btn btn-sm btn-light" href="/admin/crearusuario/@context.Id">
+                                <Tooltip Title="Editar Usuario">
+                                    <i class="fa-solid fa-file-pen text-flat-blue"></i>
+                                </Tooltip>
+                            </a>
+                        </div>
+                    </ChildContent>
                 </GridColumn>
                 <GridTemplates>
                     <GridEmptyDataTemplate TItem="UserModel">
@@ -87,6 +95,7 @@
     #region MODELOS
     private sealed class UserModel
     {
+        public string Id { get; set; } = "";
         public string Correo { get; set; } = "";
         public string NombreCompleto { get; set; } = "";
         public string NumeroDocumento { get; set; } = "";
@@ -102,20 +111,24 @@
     private async Task<List<UserModel>> GetUsers()
     {
         var authState = await authenticationStateTask;
-        var ActualUser = authState.User;
-        string ActualUserName = "";
-        if (ActualUser.Identity is not null && ActualUser.Identity.IsAuthenticated)
+        var actualUser = authState.User;
+        string actualUserName = "";
+
+        if (actualUser.Identity is not null && actualUser.Identity.IsAuthenticated)
         {
-            ActualUserName = ActualUser.Identity.Name ?? "";
+            actualUserName = actualUser.Identity.Name ?? "";
         }
 
         var users = await _userManager.Users.ToListAsync();
+        var Users = new List<UserModel>();
+
         foreach (var user in users)
         {
-            if (user.Email != ActualUserName)
+            if (user.Email != actualUserName)
             {
-                UserModel userList = new UserModel()
+                var userList = new UserModel()
                 {
+                    Id = user.Id,
                     Correo = user.Email ?? "",
                     NombreCompleto = string.Concat(user.Nombres, " ", user.Apellidos),
                     NumeroDocumento = user.NumeroDocumentoIdentidad ?? "",
@@ -129,7 +142,8 @@
                 Users.Add(userList);
             }
         }
-        return await Task.FromResult(Users);
+
+        return Users;
     }
 
     private string GetRoleDescription(List<string> RolesList)

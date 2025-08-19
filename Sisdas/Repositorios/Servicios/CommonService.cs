@@ -55,5 +55,27 @@ public class CommonService : ICommon
             return new List<ListModel>();
         }
     }
+    
+    public async Task<ListModel?> GetInstalacionById(int id)
+    {
+        try
+        {
+            await using var ctx = await _ContextCommon.CreateDbContextAsync();
+            var entity = await ctx.CatUnidadNotificadora
+                .Where(x => x.IdUn == id)
+                .Select(x => new ListModel
+                {
+                    Id = x.IdUn,
+                    Name = x.NombreUn ?? ""
+                })
+                .FirstOrDefaultAsync();
+
+            return entity;
+        }
+        catch
+        {
+            return null;
+        }
+    }
 
 }

@@ -31,7 +31,7 @@ public class UserDataService  : IUserData
         _HttpClient.DefaultRequestHeaders.Add("Accept", "application/json");
     }
 
-    public async Task<ResultModel> CreateUser(ApplicationUser UserData)
+    public async Task<ResultModel> CreateUser(ApplicationUser UserData, string password)
     {
         ResultModel ResultModel;
         try
@@ -39,33 +39,24 @@ public class UserDataService  : IUserData
             var checkUser = await _UserManager.FindByEmailAsync(UserData.Email);
             if (checkUser != null)
             {
-                return ResultModel = new ResultModel()
+                return new ResultModel()
                 {
                     Resultado = false,
                     Mensaje = "El usuario ya existe",
                 };
             }
-            
-            var user = await _UserManager.CreateAsync(UserData, FakePassword);
+
+            var user = await _UserManager.CreateAsync(UserData, password);
             if (!user.Succeeded)
             {
-                ResultModel = new ResultModel()
+                return new ResultModel()
                 {
                     Resultado = false,
                     Mensaje = "Error creando el usuario.",
                 };
             }
 
-            if (!user.Succeeded)
-            {
-                return ResultModel = new ResultModel()
-                {
-                    Resultado = false,
-                    Mensaje = "Error creando el usuario.",
-                };
-            }
-
-            return ResultModel = new ResultModel()
+            return new ResultModel()
             {
                 Resultado = true,
                 Mensaje = $"El usuario fue creado correctamente.",
@@ -73,7 +64,7 @@ public class UserDataService  : IUserData
         }
         catch (Exception ex)
         {
-            return ResultModel = new ResultModel()
+            return new ResultModel()
             {
                 Resultado = false,
                 Mensaje = $"Error: {ex.Message}.",
