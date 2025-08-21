@@ -15,11 +15,26 @@
 @inject UserManager<ApplicationUser> _UserManager
 @inject RoleManager<IdentityRole> _roleManager
 @inject IUserData _UserService
-@inject ICommon CommonService   
+@inject ICommon CommonService  
+@inject IHttpContextAccessor _httpContext;
 
 <div class="container-fluid p-3">
     <EditForm Model="UserInfo" method="post" OnValidSubmit="RegisterNewUser" FormName="register">
-        <h3>@(IsEdit ? "Editar Usuario" : "Registrar Usuario")</h3>
+        <div class="mb-4">
+            <div class="p-3 border rounded shadow-sm d-flex align-items-center"
+                 style="background-color: #f9f9f9;">
+                <h3 class="m-0 fw-semibold text-secondary d-flex align-items-center gap-2">
+                    <i class="bi @(IsEdit ? "bi-pencil-square text-warning" : "bi-person-plus-fill text-success") fs-4"></i>
+                    @(IsEdit ? "Editar Usuario" : "Registrar Usuario")
+
+                    <span class="badge rounded-pill 
+                         @(IsEdit ? "bg-outline-warning text-warning border border-warning" 
+                             : "bg-outline-success text-success border border-success") fs-6">
+                        @(IsEdit ? "Modo Edición" : "Nuevo Registro")
+                    </span>
+                </h3>
+            </div>
+        </div>
         <div class="row">
             <div class="col-lg-6 col-sm-12 col-md-6">
                 <h4 class="mb-5">Datos Generales</h4>
@@ -175,6 +190,28 @@
                     <input id="chkLocal" type="checkbox" class="form-check-input" @bind="LocalSelected" />
                     <label class="form-check-label" for="chkLocal">Local</label>
                 </div>
+                
+                <hr/>
+                <h4>Estado del usuario</h4>
+                @if (IsEdit)
+                {
+                    <div>
+                        <InputRadioGroup @bind-Value="UserInfo.IsActivo">
+                            <div class="form-check form-check-inline">
+                                <InputRadio class="form-check-input" Value="true" id="activoSi"/>
+                                <label class="form-check-label" for="activoSi">Sí</label>
+                            </div>         
+                            <div class="form-check form-check-inline">
+                                <InputRadio class="form-check-input" Value="false" id="activoNo"/>
+                                <label class="form-check-label" for="activoNo">No</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                }
+                else
+                {
+                    <p class="text-success fw-bold">El usuario será creado como <u>Activo</u>.</p>
+                }
             </div>
         </div>
     </EditForm>
@@ -238,6 +275,7 @@
         public int? InstalacionSalud { get; set; }
         public int RegionSalud { get; set; }
         public bool? IsFromDominio { get; set; } = null;
+        public bool IsActivo { get; set; }
 
         // ROLES
         public bool SuperUser { get; set; } = false;
@@ -275,12 +313,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        regionesSalud = await CommonService.GetRegiones();
+        regionesSalud = await CommonService.GetJustRegiones();
     }
     
     protected override async Task OnParametersSetAsync()
     {
-        regionesSalud = await CommonService.GetRegiones();
+        regionesSalud = await CommonService.GetJustRegiones();
+        
+        if (!IsEdit)
+        {
+            UserInfo.IsActivo = true;
+        }
 
         if (!string.IsNullOrEmpty(UserId))
         {
@@ -302,6 +345,7 @@
             UserInfo.RegionSalud = editingUser.idRegionSalud;
             UserInfo.InstalacionSalud = editingUser.idInstalacionSalud;
             UserInfo.IsFromDominio = editingUser.IsFromActiveDirectory;
+            UserInfo.IsActivo = editingUser.IsActivo;
 
             if (UserInfo.InstalacionSalud.HasValue)
             {
@@ -493,6 +537,7 @@
     
     private async Task RegisterNewUser()
     {
+        var currentUser = await _UserManager.GetUserAsync(_httpContext.HttpContext.User);
         try
         {
             if (!(UserInfo.SuperUser || UserInfo.Administrador || UserInfo.Regional || UserInfo.Local))
@@ -514,6 +559,9 @@
                 editingUser.TelefonoLaboral = UserInfo.TelefonoLaboral;
                 editingUser.idRegionSalud = UserInfo.RegionSalud;
                 editingUser.idInstalacionSalud = UserInfo.InstalacionSalud;
+                editingUser.ModifiedBy = currentUser?.Email ?? "desconocido";
+                editingUser.ModifiedAt = DateTime.Now;
+                editingUser.IsActivo = UserInfo.IsActivo;
                 editingUser.IsFromActiveDirectory = (UserInfo.IsFromDominio == true);
 
                 var updateResult = await _UserManager.UpdateAsync(editingUser);
@@ -581,6 +629,7 @@
                 TelefonoLaboral = UserInfo.TelefonoLaboral,
                 idRegionSalud = UserInfo.RegionSalud,
                 idInstalacionSalud = UserInfo.InstalacionSalud,
+                CreatedBy = currentUser?.Email ?? "desconocido",
                 CreatedAt = DateTime.Now,
                 EmailConfirmed = true,
                 IsActivo = true,

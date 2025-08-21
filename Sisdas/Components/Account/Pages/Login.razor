@@ -107,6 +107,13 @@
             IsAccessing = false;
             return;
         }
+        
+        if (!UserData.IsActivo)
+        {
+            errorMessage = "Error: El usuario se encuentra inactivo. Contacte al administrador.";
+            IsAccessing = false;
+            return;
+        }
 
         ResultModel resultado = await UserDataService.LoginAD(Input.Email, Input.Password);
         if (!resultado.Resultado)

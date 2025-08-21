@@ -1,0 +1,392 @@
+@page "/form_registro_persona"
+@using System.ComponentModel.DataAnnotations
+@using Sisdas.Models.Entities.Sisdas
+@using Sisdas.Models.Otros
+@using Sisdas.Repositorios.Interfaces
+@layout DashBoardLayout
+@inject NavigationManager NavigationManager
+@inject IUserData _UserDataService
+@inject ICommon _Commonservice
+@inject ToastService _ToastService
+
+
+<EditForm Model="model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary class="text-danger" role="alert" />
+
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Registro de Persona</h5>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3 mb-2">
+                <div class="col-md-3">
+                    <label class="form-label">Tipo de Documento</label>
+                    <div class="d-flex gap-4">
+                        <InputRadioGroup @bind-Value="@model.TipoDocumentoPersonaEnum">
+                            <div class="form-check">
+                                <InputRadio class="form-check-input" Value="TipoDocumentoPersona.Cedula" id="Cedula"/>
+                                <label class="form-check-label" for="Cedula">Cédula</label>
+                            </div>
+                            <div class="form-check">
+                                <InputRadio class="form-check-input" Value="TipoDocumentoPersona.Pasaporte" id="Pasaporte"/>
+                                <label class="form-check-label" for="Pasaporte">Pasaporte</label>
+                            </div>
+                        </InputRadioGroup>
+                    </div>
+                    <ValidationMessage For="@(() => model.TipoDocumentoPersonaEnum)" class="text-danger" />
+                </div>
+                @if (model.TipoDocumentoPersonaEnum == TipoDocumentoPersona.Cedula)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label" for="cedula">Número de Cédula</label>
+                        <InputText id="cedula" class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="model.NumeroIdentificacion"/>
+                        <ValidationMessage For="@(() => model.NumeroIdentificacion)" class="text-danger"/>
+                    </div>
+                }
+                else if (model.TipoDocumentoPersonaEnum == TipoDocumentoPersona.Pasaporte)
+                {
+                    <div class="col-md-3">
+                        <label class="form-label" for="pasaporte">Número de Pasaporte</label>
+                        <InputText id="pasaporte" class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="model.NumeroIdentificacion"/>
+                        <ValidationMessage For="@(() => model.NumeroIdentificacion)" class="text-danger"/>
+                    </div>
+                }
+            </div>
+            <hr/>
+            <div class="row g-3 mb-2">
+                <div class="col-md-3">
+                    <label class="form-label">Primer nombre</label>
+                    <InputText class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="model.PrimerNombre"/>
+                    <ValidationMessage For="() => model.PrimerNombre" class="text-danger"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Segundo nombre</label>
+                    <InputText class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="model.SegundoNombre"/>
+                    <ValidationMessage For="() => model.SegundoNombre" class="text-danger"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Primer apellido</label>
+                    <InputText class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="model.PrimerApellido"/>
+                    <ValidationMessage For="() => model.PrimerApellido" class="text-danger"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Segundo apellido</label>
+                    <InputText class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="model.SegundoApellido"/>
+                    <ValidationMessage For="() => model.SegundoApellido" class="text-danger"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Apellido de casada</label>
+                    <InputText class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="model.CasadaApellido"/>
+                    <ValidationMessage For="() => model.CasadaApellido" class="text-danger"/>
+                </div>
+            </div>
+            <hr/>
+            <div class="row g-3 mb-2">
+                <div class="col-md-3">
+                    <label class="form-label">Correo</label>
+                    <InputText class="form-control" @bind-Value="model.Email"/>
+                    <ValidationMessage For="() => model.Email" class="text-danger"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Teléfono residencial</label>
+                    <InputText class="form-control" @bind-Value="model.Telefono"/>
+                    <ValidationMessage For="() => model.Telefono" class="text-danger"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Teléfono movil</label>
+                    <InputText class="form-control" @bind-Value="model.Movil"/>
+                    <ValidationMessage For="() => model.Movil" class="text-danger"/>
+                </div>
+            </div>
+            <hr/>
+            <div class="row g-3 mb-2">
+                <div class="col-md-3">
+                    <label class="form-label">Fecha de nacimiento</label>
+                    <InputText type="date" class="form-control"
+                               @bind-Value="FechaNacimiento"
+                               min="@MinFecha" max="@MaxFecha"/>
+                    <ValidationMessage For="() => model.FechaNacimiento" class="text-danger"/>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Edad <span class="text-muted ms-1">(calculada)</span> </label>
+                    <InputText class="form-control" @bind-Value="model.EdadRegistro" disabled/>
+                </div>
+            </div>
+            <hr/>
+            <div class="row g-3 mb-2">
+                <div class="col-sm-3">
+                    <label class="form-label">Provincia</label>
+                    <InputSelect TValue="int?" class="form-select"
+                                 Value="@model.personaProvinciaId"
+                                 ValueChanged="@(async (int? ProvinciaId) => await personaProvinciaChanged(ProvinciaId ?? 0))"
+                                 ValueExpression="@(() => model.personaProvinciaId)">
+                        <option value="">--Seleccione--</option>
+                        @foreach (var x in personaProvincicaslist)
+                        {
+                            <option value="@x.Id">@x.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.personaProvinciaId)" class="text-danger"/>
+                </div>
+                <div class="col-sm-3">
+                    <label class="form-label">Región</label>
+                    <InputSelect TValue="int?" class="form-select"
+                                 Value="@model.personaRegionId"
+                                 ValueChanged="@(async (int? RegionId) => await personaRegionChanged(RegionId ?? 0))"
+                                 ValueExpression="@(() => model.personaRegionId)">
+                        <option value="">--Seleccione--</option>
+                        @foreach (var x in personaRegioneslist)
+                        {
+                            <option value="@x.Id">@x.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.personaRegionId)" class="text-danger"/>
+                </div>
+                <div class="col-sm-3">
+                    <label class="form-label">Distrito</label>
+                    <InputSelect TValue="int?" class="form-select"
+                                 Value="@model.personaDistritoId"
+                                 ValueChanged="@(async (int? DistritoId) => await personaDistritoChanged(DistritoId ?? 0))"
+                                 ValueExpression="@(() => model.personaDistritoId)">
+                        <option value="">--Seleccione--</option>
+                        @foreach (var x in personaDistritolist)
+                        {
+                            <option value="@x.Id">@x.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.personaDistritoId)" class="text-danger"/>
+                </div>
+                <div class="col-sm-3">
+                    <label class="form-label">Corregimiento</label>
+                    <InputSelect TValue="int?" class="form-select"
+                                 Value="@model.personaCorregimientoId"
+                                 ValueChanged="@(async (int? CorregimientoId) => model.personaCorregimientoId = CorregimientoId)"
+                                 ValueExpression="@(() => model.personaCorregimientoId)">
+                        <option value="">--Seleccione--</option>
+                        @foreach (var x in personaCorregimientolist)
+                        {
+                            <option value="@x.Id">@x.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.personaCorregimientoId)" class="text-danger"/>
+                </div>
+                <div class="col-sm-6">
+                    <label class="form-label">Dirección</label>
+                    <InputTextArea @bind-Value="model.DireccionEspecifica" class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" />
+                    <ValidationMessage For="@(() => model.DireccionEspecifica)" class="text-danger"/>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card-footer d-flex justify-content-end gap-2">
+        <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </div>
+</EditForm>
+
+@code {
+    
+    private string MinFecha => DateTime.Today.AddYears(-120).ToString("yyyy-MM-dd");
+    private string MaxFecha => DateTime.Today.AddYears(-14).ToString("yyyy-MM-dd");
+    
+    private List<ListModel> personaProvincicaslist { get; set; } = new();
+    private List<ListModel> personaRegioneslist { get; set; } = new();
+    private List<ListModel> personaDistritolist { get; set; } = new();
+    private List<ListModel> personaCorregimientolist { get; set; } = new();
+    
+    public enum TipoDocumentoPersona : byte
+    {
+        Cedula = 1,
+        Pasaporte = 2
+    }
+
+    public class PersonaInputModel: IValidatableObject{
+        
+        [Range(1, 2, ErrorMessage = "Debe seleccionar el tipo de documento.")]
+        public TipoDocumentoPersona TipoDocumentoPersonaEnum { get; set; }
+        
+        public int? personaProvinciaId { get; set; }
+        public int? personaRegionId { get; set; }
+        public int? personaDistritoId { get; set; }
+        public int? personaCorregimientoId { get; set; }
+        
+        public string? NumeroIdentificacion { get; set; }
+
+        [Required]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El primer nombre solo debe contener letras.")]
+        [Display(Name = "Primer nombre")]
+        public string? PrimerNombre { get; set; }
+        
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El segundo nombre solo debe contener letras.")]
+        public string? SegundoNombre { get; set; }
+
+        [Required]
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El primer apellido solo debe contener letras.")]
+        [Display(Name = "Primer apellido")]
+        public string? PrimerApellido { get; set; }
+        
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El segundo apellido solo debe contener letras.")]
+        public string? SegundoApellido { get; set; }
+        
+        [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El apellido de casada solo debe contener letras.")]
+        public string? CasadaApellido { get; set; }
+
+        [Required]
+        [EmailAddress(ErrorMessage = "El correo no tiene formato correcto.")]
+        [Display(Name = "Correo")]
+        public string? Email { get; set; }
+        
+        [RegularExpression(@"^\d+$", ErrorMessage = "El télefono residencial solo debe contener números.")]
+        public string? Telefono { get; set; }
+        
+        [Required]
+        [RegularExpression(@"^\d+$", ErrorMessage = "El télefono móvil solo debe contener números.")]
+        [Display(Name = "Télefono móvil")]
+        public string? Movil { get; set; }
+
+        [Required]
+        [Display(Name = "Fecha de Nacimiento")]
+        public string? FechaNacimiento { get; set; }
+        public string? EdadRegistro { get; set; }
+        public string? DireccionEspecifica { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (TipoDocumentoPersonaEnum == TipoDocumentoPersona.Cedula)
+            {
+                if (string.IsNullOrWhiteSpace(NumeroIdentificacion))
+                    yield return new ValidationResult("El número de cédula es obligatorio.",
+                        new[] { nameof(NumeroIdentificacion) });
+            }
+            else
+            {
+                if (string.IsNullOrWhiteSpace(NumeroIdentificacion))
+                    yield return new ValidationResult("El número de pasaporte es obligatorio.",
+                        new[] { nameof(NumeroIdentificacion) });
+            }
+            
+            if (!personaProvinciaId.HasValue)
+                yield return new ValidationResult("La provincia es obligatoria.", new[] { nameof(personaProvinciaId) });
+            else
+            {
+                if (!personaRegionId.HasValue)
+                    yield return new ValidationResult("La región es obligatoria.", new[] { nameof(personaRegionId) });
+                else
+                {
+                    if (!personaDistritoId.HasValue)
+                        yield return new ValidationResult("El distrito es obligatorio.", new[] { nameof(personaDistritoId) });
+                    else
+                    {
+                        if (!personaCorregimientoId.HasValue)
+                            yield return new ValidationResult("El corregimiento es obligatorio.", new[] { nameof(personaCorregimientoId) });
+                    }
+                }
+            }
+        }
+    }
+
+    PersonaInputModel model = new PersonaInputModel();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        personaProvincicaslist = await _Commonservice.GetProvincias();
+    }
+    
+    private async Task personaProvinciaChanged(int id)
+    {
+        model.personaProvinciaId = id;
+        personaRegioneslist = await _Commonservice.GetRegiones(id);
+        personaDistritolist.Clear();
+        model.personaRegionId = null;
+        personaCorregimientolist.Clear();
+        model.personaDistritoId = null;
+        model.personaCorregimientoId = null; 
+    }
+    
+    private async Task personaRegionChanged(int id)
+    {
+        model.personaRegionId = id;
+        personaDistritolist = await _Commonservice.GetDistritos(id);
+        personaCorregimientolist.Clear();
+        model.personaDistritoId = null;
+        model.personaCorregimientoId = null;
+    }
+
+    private async Task personaDistritoChanged(int id)
+    {
+        model.personaDistritoId = id;
+        personaCorregimientolist = await _Commonservice.GetCorregimientos(id);
+        model.personaCorregimientoId = null;
+    }
+    
+    public string FechaNacimiento
+    {
+        get => model.FechaNacimiento;
+        set
+        {
+            model.FechaNacimiento = value;
+            if (DateTime.TryParse(value, out var fecha))
+            {
+                model.EdadRegistro = CalcularEdad(fecha).ToString();
+            }
+            else
+            {
+                model.EdadRegistro = string.Empty;
+            }
+        }
+    }
+
+    private int CalcularEdad(DateTime fecha)
+    {
+        var today = DateTime.Today;
+        var edad = today.Year - fecha.Year;
+        if (fecha.Date > today.AddYears(-edad)) edad--;
+        return edad;
+    }
+
+    async Task HandleValidSubmit() {
+        
+        ResultModel Resultado = new ResultModel();
+        
+        var entidad = new TblPersonas {
+            TipoDocumento = (sbyte) model.TipoDocumentoPersonaEnum,
+            NumeroIdentificacion = model.NumeroIdentificacion,
+            PrimerNombre = model.PrimerNombre,
+            SegundoNombre = model.SegundoNombre,
+            PrimerApellido = model.PrimerApellido,
+            SegundoApellido = model.SegundoApellido,
+            CasadaApellido = model.CasadaApellido,
+            Email = model.Email,
+            Telefono = model.Telefono,
+            Movil = model.Movil,
+            FechaNacimiento = model.FechaNacimiento,
+            DomicilioProvincia = model.personaProvinciaId,
+            DomicilioRegion = model.personaRegionId,
+            DomicilioDistrito = model.personaDistritoId,
+            DomicilioCorregimiento = model.personaCorregimientoId,
+            DomicilioLocalidad = model.DireccionEspecifica,
+            EdadRegistro = model.EdadRegistro
+        };
+        
+        Resultado = await _UserDataService.CrearPersona(entidad);
+
+        if (Resultado.Resultado)
+        {
+            _ToastService.Notify(new(ToastType.Success, "Registro", 
+                $"{DateTime.Now}", "Persona creada exitosamente"));
+            NavigationManager.NavigateTo("/dashboard");
+        }
+        else
+        {
+            _ToastService.Notify(new(ToastType.Danger, "Error", $"{DateTime.Now}", Resultado.Mensaje));
+        }
+    }
+
+    void Cancel() {
+        NavigationManager.NavigateTo("/");
+    }
+}

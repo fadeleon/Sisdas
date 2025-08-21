@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Sisdas.Data;
+using Sisdas.Models.Entities.Sisdas;
 using Sisdas.Models.Otros;
 using Sisdas.Repositorios.Interfaces;
 
@@ -9,14 +11,16 @@ namespace Sisdas.Repositorios.Servicios;
 
 public class UserDataService  : IUserData
 {
+    private readonly IDbContextFactory<DBContextSisdas> _Context;
     private readonly IConfiguration _Configuration;
     private readonly ActiveDirectoryApiModel ActiveDirectoryModel;
     private readonly HttpClient _HttpClient;
     private readonly UserManager<ApplicationUser> _UserManager;
     private readonly string FakePassword = "";
 
-    public UserDataService(UserManager<ApplicationUser> UserManager, IConfiguration Configuration, HttpClient HttpClient)
+    public UserDataService(UserManager<ApplicationUser> UserManager, IConfiguration Configuration, HttpClient HttpClient, IDbContextFactory<DBContextSisdas> Context)
     {
+        _Context = Context;
         _UserManager = UserManager;
         _Configuration = Configuration;
         FakePassword = _Configuration["FakePass"] ?? "";
@@ -127,5 +131,44 @@ public class UserDataService  : IUserData
         }
 
         return ResultUserModel;
+    }
+    
+    public async Task<ResultModel> CrearPersona(TblPersonas persona)
+    {
+        try
+        {
+            await using var context = await _Context.CreateDbContextAsync();
+
+            bool existe = await context.TblPersonas
+                .AnyAsync(p => p.NumeroIdentificacion == persona.NumeroIdentificacion);
+
+            if (existe)
+            {
+                return new ResultModel
+                {
+                    Resultado = false,
+                    Mensaje = "Ya existe una persona con ese número de identificación."
+                };
+            }
+            
+            persona.AuditoriaFecha = DateTime.Now;
+            persona.AuditoriaUsuario = 1;
+            context.TblPersonas.Add(persona);
+            await context.SaveChangesAsync();
+
+            return new ResultModel
+            {
+                Resultado = true,
+                Mensaje = "Persona creada correctamente"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ResultModel
+            {
+                Resultado = false,
+                Mensaje = $"Error al crear persona: {ex.Message}"
+            };
+        }
     }
 }

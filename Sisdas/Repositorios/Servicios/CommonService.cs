@@ -21,7 +21,7 @@ public class CommonService : ICommon
         return await Task.FromResult(Password);
     }
     
-    public async Task<List<CatRegionSalud>> GetRegiones()
+    public async Task<List<CatRegionSalud>> GetJustRegiones()
     {
         List<CatRegionSalud> regiones = new List<CatRegionSalud>();
         using (var localContext = await _ContextCommon.CreateDbContextAsync())
@@ -76,6 +76,96 @@ public class CommonService : ICommon
         {
             return null;
         }
+    }
+    
+    public async Task<List<ListModel>> GetProvincias()
+    {
+        List<ListModel> Lista = new List<ListModel>();
+        try
+        {
+            using (var localContext = await _ContextCommon.CreateDbContextAsync())
+            {
+                Lista = await localContext.CatProvincia
+                    .Select(x => new ListModel()
+                    {
+                        Id = x.IdProvincia,
+                        Name = x.NombreProvincia ?? "",
+                    }).ToListAsync();
+            }
+        }
+        catch (Exception)
+        {
+        }
+        return Lista;
+    }
+    
+    public async Task<List<ListModel>> GetRegiones(int ProvinciaId)
+    {
+        List<ListModel> Lista = new List<ListModel>();
+        try
+        {
+            using (var localContext = await _ContextCommon.CreateDbContextAsync())
+            {
+                Lista = await localContext.CatRegionSalud.Where(x => x.IdProvincia == ProvinciaId)
+                    .Select(x => new ListModel()
+                    {
+                        Id = x.IdRegion,
+                        Name = x.NombreRegion ?? "",
+                    }).ToListAsync();
+
+                Lista = Lista.OrderBy(x => x.Name).ToList();
+            }
+        }
+        catch (Exception)
+        {
+        }
+        return Lista;
+    }
+    
+    public async Task<List<ListModel>> GetDistritos(int RegionId)
+    {
+        List<ListModel> Lista = new List<ListModel>();
+        try
+        {
+            using (var localContext = await _ContextCommon.CreateDbContextAsync())
+            {
+                Lista = await localContext.CatDistrito.Where(x => x.IdRegion == RegionId)
+                    .Select(x => new ListModel()
+                    {
+                        Id = x.IdDistrito,
+                        Name = x.NombreDistrito ?? "",
+                    }).ToListAsync();
+
+                Lista = Lista.OrderBy(x => x.Name).ToList();
+            }
+        }
+        catch (Exception)
+        {
+        }
+        return Lista;
+    }
+
+    public async Task<List<ListModel>> GetCorregimientos(int DistritoId)
+    {
+        List<ListModel> Lista = new List<ListModel>();
+        try
+        {
+            using (var localContext = await _ContextCommon.CreateDbContextAsync())
+            {
+                Lista = await localContext.CatCorregimiento.Where(x => x.IdDistrito == DistritoId)
+                    .Select(x => new ListModel()
+                    {
+                        Id = x.IdCorregimiento,
+                        Name = x.NombreCorregimiento ?? "",
+                    }).ToListAsync();
+
+                Lista = Lista.OrderBy(x => x.Name).ToList();
+            }
+        }
+        catch (Exception)
+        {
+        }
+        return Lista;
     }
 
 }

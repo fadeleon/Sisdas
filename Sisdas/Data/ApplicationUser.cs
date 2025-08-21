@@ -11,7 +11,10 @@ public class ApplicationUser : IdentityUser
     public string TelefonoLaboral { get; set; } = "";
     public int? idInstalacionSalud { get; set; }
     public int idRegionSalud { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public string? CreatedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public string? ModifiedBy { get; set; }
+    public DateTime? ModifiedAt { get; set; }
     public DateTime? LastLoginDate { get; set; }
     public bool IsFromActiveDirectory { get; set; } = true;
     public bool IsActivo { get; set; } = true;

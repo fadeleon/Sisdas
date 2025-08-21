@@ -15,17 +15,14 @@
         </NavLink>
     </li>
     @* <AuthorizeView Roles="super-user, certificados, cert-libreventa"> *@
-        @* <li class="sidebar-header"> *@
-        @*     <i class="fa-regular fa-file-lines"></i> Certificados *@
-        @* </li> *@
-        @* <li class="sidebar-item px-2"> *@
-        @*     <NavLink class="sidebar-link" href="/certificados/list" Match="NavLinkMatch.All"> *@
-        @*         <i class="fa-solid fa-list"></i> Certificados de Preservativos *@
-        @*     </NavLink> *@
-        @*     <NavLink class="sidebar-link" href="/certlibreventa/list" Match="NavLinkMatch.All"> *@
-        @*         <i class="fa-solid fa-list"></i> Certificados de Libre Venta *@
-        @*     </NavLink> *@
-        @* </li> *@
+        <li class="sidebar-header">
+            <i class="fa-regular fa-file-lines"></i> Pacientes
+        </li>
+        <li class="sidebar-item px-2">
+            <NavLink class="sidebar-link" href="/form_registro_persona" Match="NavLinkMatch.All">
+                <i class="fa-solid fa-list"></i> Nuevo Registro
+            </NavLink>
+        </li>
     @* </AuthorizeView> *@
     @* <AuthorizeView Roles="super-user, administrador"> *@
         <li class="sidebar-header">

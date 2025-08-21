@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Sisdas.Data;
 
 #nullable disable
 
-namespace Sisdas.Data.Migrations
+namespace Sisdas.DataMigrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250820151320_IdentityUserV3")]
+    partial class IdentityUserV3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -202,8 +205,8 @@ namespace Sisdas.Data.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("ModifiedAt")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ModifiedBy")
                         .HasColumnType("longtext");
