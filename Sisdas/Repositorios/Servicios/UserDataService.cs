@@ -171,4 +171,89 @@ public class UserDataService  : IUserData
             };
         }
     }
+    
+    public async Task<List<TblPersonas>> BuscarPersonas(string term)
+    {
+        try
+        {
+            await using var context = await _Context.CreateDbContextAsync();
+
+            if (string.IsNullOrWhiteSpace(term))
+                return new List<TblPersonas>();
+
+            var filtro = term.Trim().ToUpper();
+
+            var pattern = $"%{filtro}%";
+
+            var query = context.TblPersonas.AsQueryable();
+
+            query = query.Where(p =>
+                EF.Functions.Like((p.NumeroIdentificacion ?? "").ToUpper(), pattern)
+                ||
+                EF.Functions.Like(
+                    (
+                        (p.PrimerNombre ?? "") + " " +
+                        (p.SegundoNombre ?? "") + " " +
+                        (p.PrimerApellido ?? "") + " " +
+                        (p.SegundoApellido ?? "")
+                    ).ToUpper(),
+                    pattern
+                )
+            );
+
+            var results = await query
+                .OrderBy(p => p.PrimerApellido)
+                .ThenBy(p => p.PrimerNombre)
+                .Take(200)
+                .ToListAsync();
+
+            return results;
+        }
+        catch (Exception)
+        {
+            return new List<TblPersonas>();
+        }
+    }
+
+    public async Task<ResultModel> GuardarHistoricoProcedimiento(TblCasosAdmisiones entidad)
+    {
+        try
+        {
+            await using var context = await _Context.CreateDbContextAsync();
+
+            try
+            {
+                entidad.AuditoriaFecha = DateTime.Now;
+            }
+            catch
+            {
+            }
+
+            context.TblCasosAdmisiones.Add(entidad);
+            await context.SaveChangesAsync();
+
+            return new ResultModel
+            {
+                Resultado = true,
+                Mensaje = "Registro guardado correctamente."
+            };
+        }
+        catch (DbUpdateException dbEx)
+        {
+            return new ResultModel
+            {
+                Resultado = false,
+                Mensaje = $"Error al guardar el procedimiento (BD): {dbEx.Message}"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ResultModel
+            {
+                Resultado = false,
+                Mensaje = $"Error al guardar el procedimiento: {ex.Message}"
+            };
+        }
+    }
+
 }

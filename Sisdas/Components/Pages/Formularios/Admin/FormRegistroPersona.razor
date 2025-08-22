@@ -20,7 +20,7 @@
         </div>
 
         <div class="card-body">
-            <div class="row g-3 mb-2">
+            <div class="row g-3 mb-2"> 
                 <div class="col-md-3">
                     <label class="form-label">Tipo de Documento</label>
                     <div class="d-flex gap-4">
@@ -90,14 +90,14 @@
                     <ValidationMessage For="() => model.Email" class="text-danger"/>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Teléfono residencial</label>
-                    <InputText class="form-control" @bind-Value="model.Telefono"/>
-                    <ValidationMessage For="() => model.Telefono" class="text-danger"/>
+                    <label class="form-label">Teléfono móvil 1</label>
+                    <InputText class="form-control" @bind-Value="model.Movil1"/>
+                    <ValidationMessage For="() => model.Movil1" class="text-danger"/>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label">Teléfono movil</label>
-                    <InputText class="form-control" @bind-Value="model.Movil"/>
-                    <ValidationMessage For="() => model.Movil" class="text-danger"/>
+                    <label class="form-label">Teléfono móvil 2</label>
+                    <InputText class="form-control" @bind-Value="model.Movil2"/>
+                    <ValidationMessage For="() => model.Movil2" class="text-danger"/>
                 </div>
             </div>
             <hr/>
@@ -235,18 +235,16 @@
         [RegularExpression(@"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$", ErrorMessage = "El apellido de casada solo debe contener letras.")]
         public string? CasadaApellido { get; set; }
 
-        [Required]
         [EmailAddress(ErrorMessage = "El correo no tiene formato correcto.")]
-        [Display(Name = "Correo")]
         public string? Email { get; set; }
         
-        [RegularExpression(@"^\d+$", ErrorMessage = "El télefono residencial solo debe contener números.")]
-        public string? Telefono { get; set; }
+        [RegularExpression(@"^\d+$", ErrorMessage = "El télefono móvil 1 solo debe contener números.")]
+        public string? Movil1 { get; set; }
         
         [Required]
-        [RegularExpression(@"^\d+$", ErrorMessage = "El télefono móvil solo debe contener números.")]
+        [RegularExpression(@"^\d+$", ErrorMessage = "El télefono móvil 2 solo debe contener números.")]
         [Display(Name = "Télefono móvil")]
-        public string? Movil { get; set; }
+        public string? Movil2 { get; set; }
 
         [Required]
         [Display(Name = "Fecha de Nacimiento")]
@@ -361,8 +359,8 @@
             SegundoApellido = model.SegundoApellido,
             CasadaApellido = model.CasadaApellido,
             Email = model.Email,
-            Telefono = model.Telefono,
-            Movil = model.Movil,
+            Telefono = model.Movil1,
+            Movil = model.Movil2,
             FechaNacimiento = model.FechaNacimiento,
             DomicilioProvincia = model.personaProvinciaId,
             DomicilioRegion = model.personaRegionId,
@@ -387,6 +385,6 @@
     }
 
     void Cancel() {
-        NavigationManager.NavigateTo("/");
+        NavigationManager.NavigateTo("/dashboard");
     }
 }

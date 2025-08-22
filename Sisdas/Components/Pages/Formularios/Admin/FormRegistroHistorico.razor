@@ -1,0 +1,477 @@
+@page "/form_registro_historico"
+@layout DashBoardLayout
+@using System.ComponentModel.DataAnnotations
+@using Sisdas.Models.Entities.Sisdas
+@using Sisdas.Models.Otros
+@using Sisdas.Repositorios.Interfaces
+@inject IUserData _UserDataService
+@inject ICommon CommonService
+@inject ToastService _ToastService
+@inject NavigationManager NavigationManager
+
+<div class="card shadow-sm mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Registro de Procedimiento</h5>
+    </div>
+    <div class="card-body">
+        <div class="mb-3">
+            <label class="fw-bold mb-1">Búsqueda de Usuario</label>
+            <div class="d-flex gap-2">
+                <InputText class="form-control" @bind-Value="searchTerm" @onkeydown="@(async e => { if (e.Key == "Enter") await SearchUsers(); })" placeholder="Ingrese nombre o cédula..." />
+                <button class="btn btn-outline-primary" @onclick="SearchUsers">
+                    <i class="fa-solid fa-magnifying-glass me-1"></i> Buscar
+                </button>
+                <button class="btn btn-outline-secondary" @onclick="ClearSearch">Limpiar</button>
+            </div>
+            <small class="text-muted">Presiona Enter o clic en Buscar</small>
+        </div>
+
+        @if (isLoading)
+        {
+            <div>Cargando...</div>
+        }
+        else
+        {
+            @if (persons?.Any() != true)
+            {
+                <div class="text-muted">No hay resultados</div>
+            }
+            else
+            {
+                <table class="table table-hover">
+                    <thead class="table-light">
+                    <tr>
+                        <th>Cédula / Pasaporte</th>
+                        <th>Nombre</th>
+                        <th>Apellido</th>
+                        <th>Edad</th>
+                        <th>Tipo Anticonceptivo Actual</th>
+                        <th>Región de Residencia</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in persons)
+                        {
+                            <tr class="@(SelectedPerson != null && SelectedPerson.IdPersona == p.IdPersona ? "table-primary" : "")" @onclick="() => SelectPerson(p)">
+                                <td>@p.NumeroIdentificacion</td>
+                                <td>@p.PrimerNombre</td>
+                                <td>@p.PrimerApellido</td>
+                                <td>@p.EdadRegistro</td>
+                                <td>@p.tipoanticonceptivoactual</td>
+                                <td>@(p.DomicilioRegion?.ToString() ?? "-")</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-success" @onclick:stopPropagation="true" @onclick="() => SelectPerson(p)">
+                                        Seleccionar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        }
+    </div>
+</div>
+
+@if (SelectedPerson != null)
+{
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Usuario seleccionado</h6>
+            <div>
+                <button class="btn btn-sm btn-secondary me-2" @onclick="ClearSelection">Cambiar</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <strong>Nro de Cédula:</strong> @SelectedPerson.NumeroIdentificacion <br />
+                <strong>Nombre Completo:</strong> @SelectedPerson.PrimerNombre @SelectedPerson.SegundoNombre @SelectedPerson.PrimerApellido @SelectedPerson.SegundoApellido<br/>
+                <strong>Edad:</strong> @SelectedPerson.EdadRegistro<br/>
+                <strong>Tipo de anticonceptivo actual:</strong> @SelectedPerson.Etipoanticonceptivoactual<br/>
+                <strong>Región:</strong> @(SelectedPerson.DomicilioRegion?.ToString() ?? "-") <br/>
+            </div>
+
+            <hr />
+
+            <EditForm Model="usuarioModel" OnValidSubmit="HandleSaveClinical">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="row g-3">
+                    <!-- Tipo de uso (Colocación / Retiro) -->
+                    <div class="row g-3 mb-2">
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo de uso</label>
+                            <div class="d-flex gap-4">
+                                <InputRadioGroup @bind-Value="usuarioModel.TipoUsoMetodoPersonaEnum">
+                                    <div class="form-check">
+                                        <InputRadio class="form-check-input" Value="TipoUsoMetodoPersona.Colocación" id="Colocacion" />
+                                        <label class="form-check-label" for="Colocacion">Colocación</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <InputRadio class="form-check-input" Value="TipoUsoMetodoPersona.Retiro" id="Retiro" />
+                                        <label class="form-check-label" for="Retiro">Retiro</label>
+                                    </div>
+                                </InputRadioGroup>
+                            </div>
+                            <ValidationMessage For="@(() => usuarioModel.TipoUsoMetodoPersonaEnum)" class="text-danger" />
+                        </div>
+                        @if (usuarioModel.TipoUsoMetodoPersonaEnum == TipoUsoMetodoPersona.Colocación)
+                        {
+                            <!-- Cantidades -->
+                            <div class="col-md-4">
+                                <label class="form-label">Cantidad de nacidos vivos</label>
+                                <InputNumber class="form-control" @bind-Value="usuarioModel.cantidadNacidosVivos" />
+                                <ValidationMessage For="@(() => usuarioModel.cantidadNacidosVivos)" class="text-danger" />
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Cantidad de abortos</label>
+                                <InputNumber class="form-control" @bind-Value="usuarioModel.cantidadAbortos" />
+                                <ValidationMessage For="@(() => usuarioModel.cantidadAbortos)" class="text-danger" />
+                            </div>
+
+                            <!-- ¿Tiene método actualmente? (Si/No) -->
+                            <div class="row g-3 mb-2">
+                                <div class="col-md-4">
+                                    <label class="form-label">¿Cuenta con método anticonceptivo?</label>
+                                    <div class="d-flex gap-4">
+                                        <InputRadioGroup @bind-Value="usuarioModel.TieneMetodoAntcpEnum">
+                                            <div class="form-check">
+                                                <InputRadio class="form-check-input" Value="TieneMetodoAntcp.Si" id="MetodoSi" />
+                                                <label class="form-check-label" for="MetodoSi">Si</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <InputRadio class="form-check-input" Value="TieneMetodoAntcp.No" id="MetodoNo" />
+                                                <label class="form-check-label" for="MetodoNo">No</label>
+                                            </div>
+                                        </InputRadioGroup>
+                                    </div>
+                                    <ValidationMessage For="@(() => usuarioModel.TieneMetodoAntcpEnum)" class="text-danger" />
+                                </div>
+                                @if (usuarioModel.TieneMetodoAntcpEnum == TieneMetodoAntcp.Si)
+                                {
+                                    <!-- Método anterior -->
+                                    <div class="col-md-4">
+                                        <label class="form-label">Método anticonceptivo anterior</label>
+                                        <InputSelect TValue="MetodoAntcpAnterior" class="form-select" @bind-Value="usuarioModel.MetodoAntcpAnteriorEnum">
+                                            <option value="">--Seleccione--</option>
+                                            @foreach (MetodoAntcpAnterior m in Enum.GetValues(typeof(MetodoAntcpAnterior)))
+                                            {
+                                                <option value="@m">@m.ToString().Replace('_', ' ')</option>
+                                            }
+                                        </InputSelect>
+                                        <ValidationMessage For="@(() => usuarioModel.MetodoAntcpAnteriorEnum)" class="text-danger" />
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Método a colocar -->
+                            <div class="col-md-4">
+                                <label class="form-label">Método a colocar</label>
+                                <InputSelect TValue="MetodoColocacionActual" class="form-select" @bind-Value="usuarioModel.MetodoColocacionActualEnum">
+                                    <option value="">--Seleccione--</option>
+                                    @foreach (MetodoColocacionActual m in Enum.GetValues(typeof(MetodoColocacionActual)))
+                                    {
+                                        <option value="@m">@m.ToString().Replace('_', ' ')</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => usuarioModel.MetodoColocacionActualEnum)" class="text-danger" />
+                            </div>
+
+                            <!-- Inicio nuevo método -->
+                            <div class="col-md-4">
+                                <label class="form-label">Inicio del nuevo método</label>
+                                <InputSelect TValue="InicioNuevoMetodo" class="form-select" @bind-Value="usuarioModel.InicioNuevoMetodoEnum">
+                                    <option value="">--Seleccione--</option>
+                                    @foreach (InicioNuevoMetodo m in Enum.GetValues(typeof(InicioNuevoMetodo)))
+                                    {
+                                        <option value="@m">@m.ToString().Replace('_', ' ')</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => usuarioModel.InicioNuevoMetodoEnum)" class="text-danger" />
+                            </div>
+                        }
+                        else if (usuarioModel.TipoUsoMetodoPersonaEnum == TipoUsoMetodoPersona.Retiro)
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label">Motivo de retiro</label>
+                                <InputSelect TValue="MotivoRetiro" class="form-select" @bind-Value="usuarioModel.MotivoRetiroEnum">
+                                    <option value="">--Seleccione--</option>
+                                    @foreach (MotivoRetiro m in Enum.GetValues(typeof(MotivoRetiro)))
+                                    {
+                                        <option value="@m">@m.ToString().Replace('_', ' ')</option>
+                                    }
+                                </InputSelect>
+                                <ValidationMessage For="@(() => usuarioModel.MotivoRetiroEnum)" class="text-danger" />
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label">Especifique el Motivo de retiro</label>
+                                <InputTextArea @bind-Value="usuarioModel.razonDetalleRetiro" class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" />
+                                <ValidationMessage For="@(() => usuarioModel.razonDetalleRetiro)" class="text-danger"/>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Profesión del técnico -->
+                    <div class="col-md-4">
+                        <label class="form-label">Profesión del técnico</label>
+                        <InputSelect TValue="ProfesionTecnico" class="form-select" @bind-Value="usuarioModel.ProfesionTecnicoEnum">
+                            <option value="">--Seleccione--</option>
+                            @foreach (ProfesionTecnico p in Enum.GetValues(typeof(ProfesionTecnico)))
+                            {
+                                <option value="@p">@p.ToString().Replace('_', ' ')</option>
+                            }
+                        </InputSelect>
+                        <ValidationMessage For="@(() => usuarioModel.ProfesionTecnicoEnum)" class="text-danger" />
+                    </div>
+
+                    <!-- Datos del técnico -->
+                    <div class="col-md-6">
+                        <label class="form-label">Número de registro del técnico</label>
+                        <InputText class="form-control" @bind-Value="usuarioModel.numeroDocumentoTecnico" />
+                        <ValidationMessage For="@(() => usuarioModel.numeroDocumentoTecnico)" class="text-danger" />
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Nombre del técnico</label>
+                        <InputText class="form-control text-uppercase" oninput="this.value = this.value.toUpperCase()" @bind-Value="usuarioModel.nombreTecnico" />
+                        <ValidationMessage For="@(() => usuarioModel.nombreTecnico)" class="text-danger" />
+                    </div>
+
+                    <div class="col-12">
+                        <label class="fw-bold">Instalación de Salud</label>
+                        <AutoComplete @bind-Value="filtroInstalaciones"
+                                      TItem="ListModel"
+                                      DataProvider="AutoCompleteDataProvider"
+                                      OnChanged="OnAutoCompleteChanged"
+                                      PropertyName="Name"
+                                      class="form-control"
+                                      Placeholder="Busque por instalación" />
+                        <ValidationMessage For="@(() => usuarioModel.InstalacionSalud)" class="text-danger" />
+                    </div>
+
+                </div>
+
+                <div class="card-footer d-flex justify-content-end gap-2 mt-3">
+                    <button type="button" class="btn btn-outline-secondary" @onclick="ClearClinicalForm">Limpiar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Procedimiento</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+
+@code {
+    
+    private string searchTerm = string.Empty;
+    private bool isLoading = false;
+    private string filtroInstalaciones { get; set; } = "";
+    private int? instalacionSeleccionadaId { get; set; }
+    
+    private List<TblPersonas> persons = new();
+    private TblPersonas SelectedPerson;
+
+    public enum TipoUsoMetodoPersona : byte { Colocación = 1, Retiro = 2 }
+    public enum TieneMetodoAntcp : byte { Si = 1, No = 2 }
+    public enum MetodoAntcpAnterior : byte { DIU_cobre = 1, Implante_de_Jadelle = 2, DIU_de_levonogestrel = 3, Implanon = 4, Anticonceptivos_orales = 5, Inyectables_mensual = 6, Inyectables_trimestral = 7 }
+    public enum MetodoColocacionActual : byte { DIU_cobre = 1, Implante_de_Jadelle = 2, DIU_de_levonogestrel = 3, Implanon = 4, Anticonceptivos_orales = 5, Inyectables_mensual = 6, Inyectables_trimestral = 7 }
+    public enum InicioNuevoMetodo : byte { Transcesarea = 1, Posparto_parto_vaginal_hasta_48_horas_despues = 2, Posparto_despues_de_30_a_42_dias = 3, Intervalo_intergestacional = 4, Posaborto_de_0_a_30_dias = 5, Nuliparidad = 6 }
+    public enum ProfesionTecnico : byte { Medico_ginecologo = 1, Medico_general = 2, Enfermero = 3 }
+    public enum MotivoRetiro : byte { Sangrado_o_dolor = 1, No_deseo_planificar = 2, Cambio_de_metodo = 3, Buscar_embarazo = 4, Continuidad_de_metodo = 5 }
+    
+    public class ClinicalInputModel : IValidatableObject
+    {
+        [Range(1, 2, ErrorMessage = "Debe seleccionar el tipo de uso de método.")]
+        public TipoUsoMetodoPersona TipoUsoMetodoPersonaEnum { get; set; }
+        
+        [Required]
+        [Display(Name = "Número de nacidos vivos")]
+        public int cantidadNacidosVivos { get; set; }
+        
+        [Required]
+        [Display(Name = "Número de abortos")]
+        public int cantidadAbortos { get; set; }
+        
+        [Range(1, 2, ErrorMessage = "Debe indicar si cuenta con un método anticonceptivo actualmente.")]
+        public TieneMetodoAntcp TieneMetodoAntcpEnum { get; set; }
+        
+        [Range(1, 2, ErrorMessage = "Debe indicar el método anticonceptivo anterior.")]
+        public MetodoAntcpAnterior MetodoAntcpAnteriorEnum { get; set; }
+        
+        [Range(1, 2, ErrorMessage = "Debe indicar el método anticonceptivo a colocar.")]
+        public MetodoColocacionActual MetodoColocacionActualEnum { get; set; }
+        
+        [Range(1, 2, ErrorMessage = "Debe indicar el momento en el que inicia el método anticonceptivo.")]
+        public InicioNuevoMetodo InicioNuevoMetodoEnum { get; set; }
+        
+        [Range(1, 2, ErrorMessage = "Debe indicar la profesión del técnico.")]
+        public ProfesionTecnico ProfesionTecnicoEnum { get; set; }
+        
+        [Required]
+        [Display(Name = "Numero de documento de identidad")]
+        public string numeroDocumentoTecnico { get; set; }
+        
+        [Required]
+        [Display(Name = "Nombre del técnico")]
+        public string nombreTecnico { get; set; }
+        
+        public int? InstalacionSalud { get; set; }
+        
+        [Range(1, 2, ErrorMessage = "Debe indicar el motivo de retiro.")]
+        public MotivoRetiro MotivoRetiroEnum { get; set; }
+        
+        [Required]
+        [Display(Name = "Especificación de retiro")]
+        public string razonDetalleRetiro { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+        {
+            if (InstalacionSalud == null || InstalacionSalud == 0)
+            {
+                yield return new ValidationResult(
+                    "Debe seleccionar una Instalación de Salud.",
+                    new[] { nameof(InstalacionSalud) });
+            }
+        }
+    }
+
+    private ClinicalInputModel usuarioModel = new ClinicalInputModel();
+
+    protected override void OnInitialized()
+    {
+        
+    }
+    
+    private async Task<AutoCompleteDataProviderResult<ListModel>> AutoCompleteDataProvider(
+        AutoCompleteDataProviderRequest<ListModel> request)
+    {
+        var filtro = (request.Filter?.Value?.ToString() ?? "").ToUpper();
+        var lista = await CommonService.GetInstalaciones(filtro);
+
+        return new AutoCompleteDataProviderResult<ListModel>
+        {
+            Data = lista,
+            TotalCount = lista.Count
+        };
+    }
+    
+    private void OnAutoCompleteChanged(ListModel? instalacion)
+    {
+        if (instalacion != null)
+        {
+            filtroInstalaciones = instalacion.Name; 
+            instalacionSeleccionadaId = instalacion.Id;
+            usuarioModel.InstalacionSalud = instalacion.Id;
+        }
+        else
+        {
+            filtroInstalaciones = "";
+            instalacionSeleccionadaId = null;
+            usuarioModel.InstalacionSalud = null;
+        }
+    }
+
+    private async Task SearchUsers()
+    {
+        isLoading = true;
+        persons.Clear();
+        try
+        {
+            persons = await _UserDataService.BuscarPersonas(searchTerm);
+        }
+        catch (Exception ex)
+        {
+            _ToastService.Notify(new(ToastType.Danger, "Error", $"{DateTime.Now}", ex.Message));
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearSearch()
+    {
+        searchTerm = string.Empty;
+        persons.Clear();
+    }
+
+    private void SelectPerson(TblPersonas persona)
+    {
+        SelectedPerson = persona;
+        usuarioModel = new ClinicalInputModel
+        {
+            TipoUsoMetodoPersonaEnum = TipoUsoMetodoPersona.Colocación,
+            TieneMetodoAntcpEnum = TieneMetodoAntcp.No,
+            MetodoAntcpAnteriorEnum = 0,
+            MetodoColocacionActualEnum = 0,
+            InicioNuevoMetodoEnum = 0,
+            ProfesionTecnicoEnum = 0,
+            cantidadNacidosVivos = 0,
+            cantidadAbortos = 0,
+            numeroDocumentoTecnico = "",
+            nombreTecnico = "",
+            InstalacionSalud = null
+        };
+    }
+
+    private void ClearSelection()
+    {
+        SelectedPerson = null;
+        usuarioModel = new ClinicalInputModel();
+    }
+
+    private void ClearClinicalForm()
+    {
+        usuarioModel = new ClinicalInputModel();
+        filtroInstalaciones = "";
+        instalacionSeleccionadaId = null;
+    }
+
+    private async Task HandleSaveClinical()
+    {
+        if (SelectedPerson == null)
+        {
+            _ToastService.Notify(new(ToastType.Warning, "Atención", $"{DateTime.Now}", "Seleccione primero un paciente."));
+            return;
+        }
+
+        try
+        {
+            var entidadClinica = new TblCasosAdmisiones()
+            {
+                IdPersona = SelectedPerson.IdPersona,
+                TipoConsulta = (byte)usuarioModel.TipoUsoMetodoPersonaEnum,
+                CantidadNacidosVivos = usuarioModel.cantidadNacidosVivos,
+                CantidadAbortos = usuarioModel.cantidadAbortos,
+                AnticonceptivoPrevio = (byte)usuarioModel.TieneMetodoAntcpEnum,
+                AnticonceptivoPrevioTipo = (byte)usuarioModel.MetodoAntcpAnteriorEnum,
+                MetodoInicio = (byte)usuarioModel.MetodoColocacionActualEnum,
+                MetodoInicioMomento = (byte)usuarioModel.InicioNuevoMetodoEnum,
+                Profesional = (byte)usuarioModel.ProfesionTecnicoEnum,
+                ProfesionalCedula = usuarioModel.numeroDocumentoTecnico,
+                ProfesionalNombre = usuarioModel.nombreTecnico,
+                InstalacionSalud = usuarioModel.InstalacionSalud,
+                AuditoriaFecha = DateTime.Now
+            };
+
+            var res = await _UserDataService.GuardarHistoricoProcedimiento(entidadClinica);
+
+            if (res.Resultado)
+            {
+                _ToastService.Notify(new(ToastType.Success, "Registro", $"{DateTime.Now}", "Procedimiento guardado."));
+                ClearClinicalForm();
+            }
+            else
+            {
+                _ToastService.Notify(new(ToastType.Danger, "Error", $"{DateTime.Now}", res.Mensaje));
+            }
+        }
+        catch (Exception ex)
+        {
+            _ToastService.Notify(new(ToastType.Danger, "Excepción", $"{DateTime.Now}", ex.Message));
+        }
+    }
+}

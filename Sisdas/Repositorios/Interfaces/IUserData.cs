@@ -10,4 +10,6 @@ public interface IUserData
     Task<ResultModel> LoginAD(string UserName, string Password);
     Task<ResultGenericModel<ActiveDirectoryUserModel>> FindUserByEmail(string Email);
     Task<ResultModel> CrearPersona(TblPersonas persona);
+    Task<List<TblPersonas>> BuscarPersonas(string term);
+    Task<ResultModel> GuardarHistoricoProcedimiento(TblCasosAdmisiones entidad);
 }
